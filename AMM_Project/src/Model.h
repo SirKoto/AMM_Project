@@ -2,15 +2,19 @@
 
 #include <vector>
 #include <string>
-
-class Model
-{
-
-};
+#include <cmath>
 
 typedef struct vec2
 {
 	float x, y;
+
+	float sqDist(const vec2& o) const {
+		return x * o.x + y * o.y;
+	}
+
+	float dist(const vec2& o) const {
+		return std::sqrt(sqDist(o));
+	}
 } vec2, vec;
 
 typedef struct City
@@ -27,12 +31,20 @@ typedef struct CenterType
 
 } CenterType, Type;
 
-class ModelData
+class Model
 {
 public:
-	ModelData() = default;
+	Model() = default;
 
 	bool readFromFile(const std::string& fileName);
+
+	const std::vector<City>& getCities() const { return cities; }
+
+	const std::vector<CenterType>& getCenterTypes() const { return centerTypes; }
+
+	const std::vector<vec>& getLocations() const { return centerPos; }
+
+	const float& getMinDistanceBetweenCenters() const { return minDistBetweenCenters; }
 
 private:
 	std::vector<City> cities;
@@ -41,6 +53,6 @@ private:
 
 	std::vector<CenterType> centerTypes;
 
-	float minDistBetweenCenters;
+	float minDistBetweenCenters = 0.0f;
 
 };
