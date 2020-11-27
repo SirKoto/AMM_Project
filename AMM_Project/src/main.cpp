@@ -17,5 +17,10 @@ int main(int argc, char* argv[]) {
 
 	GreedyModel pMod(modelData);
 
+	pMod.runGreedy();
+
+
+	std::cout << pMod;
+
 	return 0;
 }
