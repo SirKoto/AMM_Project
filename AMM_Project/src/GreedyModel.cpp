@@ -52,6 +52,17 @@ bool GreedyModel::isSolution() const
 
 void GreedyModel::runGreedy()
 {
+	auto numToAssign = [&]() -> float
+	{
+		uint32_t x = 0;
+		for (const std::pair<uint32_t, uint32_t >& p : mCityCenterAssignment) {
+			x += p.first != NOT_ASSIGNED ? 1 : 0;
+			x += p.second != NOT_ASSIGNED ? 1 : 0;
+		}
+		return static_cast<float>(x) / static_cast<float>(2*mCityCenterAssignment.size());
+	};
+
+	float actual = numToAssign();
 	while (!isSolution()) {
 		std::pair<uint32_t, uint32_t> bestAction = findBestAddition();
 
@@ -60,6 +71,12 @@ void GreedyModel::runGreedy()
 		}
 
 		applyAction(bestAction.first, bestAction.second);
+
+		float n = numToAssign();
+		if (n > actual + 0.01f) {
+			actual = n;
+			std::cout << actual * 100.0f <<"%" << std::endl;
+		}
 	}
 }
 
@@ -170,10 +187,15 @@ std::ostream& operator<<(std::ostream& os, const GreedyModel& dt)
 	os << "Is a solution?: " << dt.isSolution() << "\n";
 	os << "\nCities assigned to:\n";
 	for (uint32_t i = 0; i < dt.mCityCenterAssignment.size(); ++i) {
-		os << "City " << i << " first: " << dt.mCityCenterAssignment[i].first << " second: " << dt.mCityCenterAssignment[i].second << "\n";
+		os << "City " << i << " first: " << static_cast<int>(dt.mCityCenterAssignment[i].first != dt.NOT_ASSIGNED ? dt.mCityCenterAssignment[i].first : -1) 
+			<< " second: " << static_cast<int>(dt.mCityCenterAssignment[i].second != dt.NOT_ASSIGNED ? dt.mCityCenterAssignment[i].second : -1) << "\n";
 
-		centerServing.at(dt.mCityCenterAssignment[i].first) += dt.mBaseModel.getCities()[i].population;
-		centerServing.at(dt.mCityCenterAssignment[i].second) += 0.1f * dt.mBaseModel.getCities()[i].population;
+		if (centerServing.count(dt.mCityCenterAssignment[i].first)) {
+			centerServing.at(dt.mCityCenterAssignment[i].first) += dt.mBaseModel.getCities()[i].population;
+		}
+		if (centerServing.count(dt.mCityCenterAssignment[i].second)) {
+			centerServing.at(dt.mCityCenterAssignment[i].second) += 0.1f * dt.mBaseModel.getCities()[i].population;
+		}
 
 	}
 	os << "\nlocations assigned:\n";
