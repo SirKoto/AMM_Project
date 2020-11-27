@@ -1,7 +1,7 @@
 
 
 #include "Model.h"
-#include "ProcessedModel.h"
+#include "GreedyModel.h"
 #include <iostream>
 
 int main(int argc, char* argv[]) {
@@ -15,7 +15,7 @@ int main(int argc, char* argv[]) {
 		std::cout << "Cannot read file " << fileName << std::endl;
 	}
 
-	ProcessedModel pMod(modelData);
+	GreedyModel pMod(modelData);
 
 	return 0;
 }

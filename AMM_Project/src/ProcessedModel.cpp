@@ -37,13 +37,13 @@ ProcessedModel::ProcessedModel(const Model& model) :
 	}
 }
 
-inline bool ProcessedModel::isLocationPairCompatible(const uint32_t& l1, const uint32_t& l2) const
+bool ProcessedModel::isLocationPairCompatible(const uint32_t& l1, const uint32_t& l2) const
 {
 
 	return mCompatibleLocations[(l1 * mNumLocations + l2)];
 }
 
-inline bool ProcessedModel::isCityLocationTypeCompatible(
+bool ProcessedModel::isCityLocationTypeCompatible(
 	const uint32_t& c,
 	const uint32_t& l,
 	const uint32_t& t, 

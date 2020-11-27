@@ -24,12 +24,18 @@
     <ClCompile Include="src\ProcessedModel.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="src\GreedyModel.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\Model.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\ProcessedModel.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\GreedyModel.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
