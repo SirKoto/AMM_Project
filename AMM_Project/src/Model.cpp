@@ -4,7 +4,7 @@
 #include <cassert>
 #include <iostream>
 
-bool ModelData::readFromFile(const std::string& fileName)
+bool Model::readFromFile(const std::string& fileName)
 {
 
     std::ifstream stream(fileName, std::ifstream::in);

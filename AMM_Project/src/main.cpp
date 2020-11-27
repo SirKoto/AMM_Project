@@ -1,11 +1,12 @@
 
 
 #include "Model.h"
+#include "ProcessedModel.h"
 #include <iostream>
 
 int main(int argc, char* argv[]) {
 
-	ModelData modelData;
+	Model modelData;
 
 	std::string fileName = "data/project.2.dat";
 	bool read = modelData.readFromFile(fileName);
@@ -13,6 +14,8 @@ int main(int argc, char* argv[]) {
 	{
 		std::cout << "Cannot read file " << fileName << std::endl;
 	}
+
+	ProcessedModel pMod(modelData);
 
 	return 0;
 }
