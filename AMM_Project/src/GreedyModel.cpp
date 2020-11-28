@@ -64,13 +64,13 @@ void GreedyModel::runGreedy()
 
 	float actual = numToAssign();
 	while (!isSolution()) {
-		std::pair<uint32_t, uint32_t> bestAction = findBestAddition();
+		Candidate bestAction = findBestAddition();
 
-		if (bestAction.first == NOT_ASSIGNED) {
+		/*if (bestAction.first == NOT_ASSIGNED) {
 			break;
-		}
+		}*/
 
-		applyAction(bestAction.first, bestAction.second);
+		applyAction(bestAction);
 
 		float n = numToAssign();
 		if (n > actual + 0.01f) {
@@ -90,24 +90,30 @@ bool GreedyModel::locationIsBlocked(const uint32_t l) const
 	return false;
 }
 
-float GreedyModel::tryAddGreedy(const uint32_t l, const uint32_t t) const
+GreedyModel::Candidate GreedyModel::tryAddGreedy(const uint32_t l, const uint32_t t) const
 {
 	if (mLocationTypeAssignment[l] != NOT_ASSIGNED || locationIsBlocked(l)) {
-		return std::numeric_limits<float>::infinity();
+		Candidate infeasible;
+		infeasible.fit=-1;
+		return infeasible;
 	}
 
 	uint32_t num = 0;
 	float pop = 0.0f;
 	const float maxPop = mBaseModel.getCenterTypes()[t].maxPop;
 	const uint32_t* ptr = getCitiesSorted(l);
+
+	Candidate bestCandidate;
+	std::vector<char> assignments;
+	// First pass, primary heavy
 	for (uint32_t ci = 0; ci < mNumCities; ++ci) {
 		uint32_t c = *(ptr + ci);
 		if (mCityCenterAssignment[c].first == NOT_ASSIGNED && isCityLocationTypeCompatible(c, l, t, 0)) {
-
 			float newPop = pop + mBaseModel.getCities()[c].population;
 			if (newPop > maxPop) {
 				break;
 			}
+			assignments.push_back(1);
 			pop = newPop;
 		}
 		else if (mCityCenterAssignment[c].second == NOT_ASSIGNED && isCityLocationTypeCompatible(c, l, t, 1)) {
@@ -115,11 +121,51 @@ float GreedyModel::tryAddGreedy(const uint32_t l, const uint32_t t) const
 			if (newPop > maxPop) {
 				break;
 			}
+			assignments.push_back(2);
 			pop = newPop;
 		}
+		else {
+			assignments.push_back(0);
+		}
 	}
-
-	return mBaseModel.getCenterTypes()[t].cost / pop;
+	bestCandidate.fit=pop/mBaseModel.getCenterTypes()[t].cost;
+	bestCandidate.assigns=assignments;
+	bestCandidate.type=t;
+	bestCandidate.loc=l;
+	// Second pass, secondary heavy
+	assignments.clear();	
+	float totalSecondaryPop=0;
+	for (uint32_t ci = 0; ci < mNumCities; ++ci) {
+		uint32_t c = *(ptr + ci);
+		if (mCityCenterAssignment[c].second == NOT_ASSIGNED && isCityLocationTypeCompatible(c, l, t, 1)){
+			float newPop=totalSecondaryPop+mBaseModel.getCities()[c].population*0.1;
+			if (newPop>maxPop) {
+				break;	
+			}
+			assignments.push_back(2);
+			totalSecondaryPop+=mBaseModel.getCities()[c].population*0.1;
+		}
+		else assignments.push_back(0);
+	}
+	for (uint32_t ci = 0; ci < mNumCities; ++ci) {
+		uint32_t c = *(ptr + ci);
+		if (mCityCenterAssignment[c].first == NOT_ASSIGNED && isCityLocationTypeCompatible(c, l, t, 0)) {
+			float newPop = totalSecondaryPop + mBaseModel.getCities()[c].population*0.9;
+			totalSecondaryPop-=mBaseModel.getCities()[c].population*0.1;
+			if (newPop > maxPop) {
+				break;
+			}
+			assignments[ci]=1;
+			float fit=newPop/mBaseModel.getCenterTypes()[t].cost;
+			if (fit>bestCandidate.fit) {
+				bestCandidate.fit=fit;
+				bestCandidate.assigns=assignments;
+				bestCandidate.type=t;
+				bestCandidate.loc=l;
+			}
+		}
+	}
+	return bestCandidate;
 }
 
 const uint32_t* GreedyModel::getCitiesSorted(const uint32_t l) const
@@ -127,28 +173,28 @@ const uint32_t* GreedyModel::getCitiesSorted(const uint32_t l) const
 	return mSortedCities.data() + l * mNumCities;
 }
 
-std::pair<uint32_t, uint32_t> GreedyModel::findBestAddition() const
+GreedyModel::Candidate GreedyModel::findBestAddition() const
 {
-	std::pair<uint32_t, uint32_t> res = {NOT_ASSIGNED, NOT_ASSIGNED};
-	float actualFitness = std::numeric_limits<float>::infinity();
+	Candidate res ;
+	float actualFitness = 0;
 
 	for (uint32_t l = 0; l < mNumLocations; ++l) {
 		for (uint32_t t = 0; t < mNumTypes; ++t) {
-			float fit = tryAddGreedy(l, t);
+			Candidate candidate = tryAddGreedy(l, t);
 
-			if (fit < actualFitness) {
-				actualFitness = fit;
-				res = { l, t };
+			if (candidate.fit > actualFitness) {
+				actualFitness = candidate.fit;
+				res=candidate;
 			}
 		}
 	}
 
-
 	return res;
 }
 
-void GreedyModel::applyAction(const uint32_t l, const uint32_t t)
+void GreedyModel::applyAction(Candidate bestActions)
 {
+	/*
 	float pop = 0.0f;
 	const float maxPop = mBaseModel.getCenterTypes()[t].maxPop;
 
@@ -171,9 +217,19 @@ void GreedyModel::applyAction(const uint32_t l, const uint32_t t)
 			}
 			
 		}
+	}*/
+	const uint32_t* ptr = getCitiesSorted(bestActions.loc);
+	for (uint32_t ci=0;ci<bestActions.assigns.size();++ci) {
+		uint32_t c = *(ptr + ci);
+		if (bestActions.assigns[ci]==1) {
+			mCityCenterAssignment[c].first = bestActions.loc;
+		}
+		else if (bestActions.assigns[ci]==2) {
+			mCityCenterAssignment[c].second = bestActions.loc;
+		}
 	}
 
-	mLocationTypeAssignment[l] = t;
+	mLocationTypeAssignment[bestActions.loc] = bestActions.type;
 }
 
 std::ostream& operator<<(std::ostream& os, const GreedyModel& dt)
