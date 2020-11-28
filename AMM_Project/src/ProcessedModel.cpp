@@ -27,11 +27,11 @@ ProcessedModel::ProcessedModel(const Model& model) :
 			for (uint32_t t = 0; t < mNumTypes; ++t) {
 				uint32_t idx = (((c * mNumLocations + l) * mNumTypes + t) * 2);
 				mCompatibleCityLocationType[idx] = 
-					model.getCities()[c].cityPos.dist(model.getLocations()[l]) <= 
+					model.getCities()[c].cityPos.sqDist(model.getLocations()[l]) <= 
 					model.getCenterTypes()[t].serveDist;
 				mCompatibleCityLocationType[idx + 1] = 
-					model.getCities()[c].cityPos.dist(model.getLocations()[l]) <= 
-					3 * model.getCenterTypes()[t].serveDist;
+					model.getCities()[c].cityPos.sqDist(model.getLocations()[l]) <= 
+					9 * model.getCenterTypes()[t].serveDist;
 			}
 		}
 	}

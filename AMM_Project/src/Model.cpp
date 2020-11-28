@@ -67,7 +67,9 @@ bool Model::readFromFile(const std::string& fileName)
         else if (op == "d_city") {
             stream.ignore(std::numeric_limits<std::streamsize>::max(), '['); // ignore until open bracket
             for (CenterType& type : centerTypes) {
-                stream >> type.serveDist;
+                float aux;
+                stream >> aux;
+                type.serveDist=aux*aux;
             }
             std::getline(stream, tmp); // ignore line
         }
@@ -88,7 +90,7 @@ bool Model::readFromFile(const std::string& fileName)
         else if (op == "d_center") {
             float aux;
             stream >> aux;
-            this->minDistBetweenCenters=aux=aux*aux;;
+            this->minDistBetweenCenters=aux*aux;;
             std::getline(stream, tmp); // ignore line
         }
         else {
