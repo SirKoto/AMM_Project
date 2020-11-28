@@ -148,16 +148,18 @@ GreedyModel::Candidate GreedyModel::tryAddGreedy(const uint32_t l, const uint32_
 		}
 		else assignments.push_back(0);
 	}
-	for (uint32_t ci = 0; ci < mNumCities; ++ci) {
+	for (uint32_t ci = 0; ci < assignments.size(); ++ci) {
 		uint32_t c = *(ptr + ci);
-		if (mCityCenterAssignment[c].first == NOT_ASSIGNED && isCityLocationTypeCompatible(c, l, t, 0)) {
-			float newPop = totalSecondaryPop + mBaseModel.getCities()[c].population*0.9;
+		if (assignments[ci]==2) {
 			totalSecondaryPop-=mBaseModel.getCities()[c].population*0.1;
-			if (newPop > maxPop) {
+		}
+		if (mCityCenterAssignment[c].first == NOT_ASSIGNED && isCityLocationTypeCompatible(c, l, t, 0)) {
+			totalSecondaryPop += mBaseModel.getCities()[c].population;
+			if (totalSecondaryPop > maxPop) {
 				break;
 			}
 			assignments[ci]=1;
-			float fit=newPop/mBaseModel.getCenterTypes()[t].cost;
+			float fit=totalSecondaryPop/mBaseModel.getCenterTypes()[t].cost;
 			if (fit>bestCandidate.fit) {
 				bestCandidate.fit=fit;
 				bestCandidate.assigns=assignments;
