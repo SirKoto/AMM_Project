@@ -69,7 +69,7 @@ void GreedyModel::runGreedy()
 		/*if (bestAction.first == NOT_ASSIGNED) {
 			break;
 		}*/
-
+		if (bestAction.fit<0) break;
 		applyAction(bestAction);
 
 		float n = numToAssign();
@@ -132,6 +132,7 @@ GreedyModel::Candidate GreedyModel::tryAddGreedy(const uint32_t l, const uint32_
 	bestCandidate.assigns=assignments;
 	bestCandidate.type=t;
 	bestCandidate.loc=l;
+	
 	// Second pass, secondary heavy
 	assignments.clear();	
 	float totalSecondaryPop=0;
@@ -176,7 +177,8 @@ const uint32_t* GreedyModel::getCitiesSorted(const uint32_t l) const
 GreedyModel::Candidate GreedyModel::findBestAddition() const
 {
 	Candidate res ;
-	float actualFitness = 0;
+	float actualFitness = -1.0;
+	res.fit=-1.0;
 
 	for (uint32_t l = 0; l < mNumLocations; ++l) {
 		for (uint32_t t = 0; t < mNumTypes; ++t) {
