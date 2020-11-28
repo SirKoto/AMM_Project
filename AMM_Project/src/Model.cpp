@@ -86,7 +86,9 @@ bool Model::readFromFile(const std::string& fileName)
             std::getline(stream, tmp); // ignore line
         }
         else if (op == "d_center") {
-            stream >> this->minDistBetweenCenters;
+            float aux;
+            stream >> aux;
+            this->minDistBetweenCenters=aux=aux*aux;;
             std::getline(stream, tmp); // ignore line
         }
         else {

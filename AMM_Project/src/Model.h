@@ -13,10 +13,6 @@ typedef struct vec2
 		float yDist=y-o.y;
 		return (xDist*xDist) + (yDist*yDist);
 	}
-
-	float dist(const vec2& o) const {
-		return std::sqrt(sqDist(o));
-	}
 } vec2, vec;
 
 typedef struct City

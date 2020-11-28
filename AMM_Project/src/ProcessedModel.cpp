@@ -12,7 +12,7 @@ ProcessedModel::ProcessedModel(const Model& model) :
 		for (uint32_t l2 = 0; l2 < mNumLocations; ++l2) {
 			bool res = true;
 			if (l1 != l2) {
-				res = model.getLocations()[l1].dist(model.getLocations()[l2]) >= model.getMinDistanceBetweenCenters();
+				res = model.getLocations()[l1].sqDist(model.getLocations()[l2]) >= model.getMinDistanceBetweenCenters();
 			}
 
 			mCompatibleLocations[(l1 * mNumLocations + l2)] = res;
