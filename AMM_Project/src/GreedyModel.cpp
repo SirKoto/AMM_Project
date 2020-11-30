@@ -126,7 +126,7 @@ GreedyModel::Candidate GreedyModel::tryAddGreedy(const uint32_t l, const uint32_
 			bool assignedPrimary=false;
 			bool assignedSecondary=false;
 			float population=mBaseModel.getCities()[c].population;
-			if (mCityCenterAssignment[c].first == NOT_ASSIGNED){
+			if (mCityCenterAssignment[c].first == NOT_ASSIGNED && isCityLocationTypeCompatible(c, l, t, 0)){
 				if (!fullPrimary) {
 					newPopPrimary+=mBaseModel.getCities()[c].population;
 				}
