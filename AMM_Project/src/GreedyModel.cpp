@@ -99,74 +99,94 @@ GreedyModel::Candidate GreedyModel::tryAddGreedy(const uint32_t l, const uint32_
 	}
 
 	uint32_t num = 0;
-	float pop = 0.0f;
 	const float maxPop = mBaseModel.getCenterTypes()[t].maxPop;
 	const uint32_t* ptr = getCitiesSorted(l);
 
 	Candidate bestCandidate;
-	std::vector<char> assignments;
-	// First pass, primary heavy
+	bool fullMix=false;
+	bool fullSecondary=false;
+	bool fullPrimary=false;
+
+	std::vector<char> assignmentsMix;
+	std::vector<char> assignmentsSecondary;
+	std::vector<char> assignmentsPrimary;
+
+
+	float newPopPrimary=0;
+	float newPopMix=0;
+	float newPopSecondary=0;
+
+	float popMix=0;
+	float popSecondary=0;
+	float popPrimary=0;
+
 	for (uint32_t ci = 0; ci < mNumCities; ++ci) {
 		uint32_t c = *(ptr + ci);
-		if (mCityCenterAssignment[c].first == NOT_ASSIGNED && isCityLocationTypeCompatible(c, l, t, 0)) {
-			float newPop = pop + mBaseModel.getCities()[c].population;
-			if (newPop > maxPop) {
-				break;
+		if (isCityLocationTypeCompatible(c, l, t, 1)) {
+			bool assignedPrimary=false;
+			bool assignedSecondary=false;
+			float population=mBaseModel.getCities()[c].population;
+			if (mCityCenterAssignment[c].first == NOT_ASSIGNED){
+				if (!fullPrimary) {
+					newPopPrimary+=mBaseModel.getCities()[c].population;
+				}
+				if (!fullMix)  {
+					newPopMix+=mBaseModel.getCities()[c].population;
+				}
+				assignedPrimary=true;
 			}
-			assignments.push_back(1);
-			pop = newPop;
-		}
-		else if (mCityCenterAssignment[c].second == NOT_ASSIGNED && isCityLocationTypeCompatible(c, l, t, 1)) {
-			float newPop = pop + 0.1f * mBaseModel.getCities()[c].population;
-			if (newPop > maxPop) {
-				break;
+			if (mCityCenterAssignment[c].second == NOT_ASSIGNED) {
+				if (!fullSecondary) {
+					newPopSecondary+=mBaseModel.getCities()[c].population*0.1;
+				}
+				if (!assignedPrimary && !fullMix) {
+					newPopMix+=mBaseModel.getCities()[c].population*0.1;
+				}
+				assignedSecondary=true;
 			}
-			assignments.push_back(2);
-			pop = newPop;
+			if (!fullMix && newPopMix>maxPop) fullMix=true;
+			if (!fullPrimary && newPopPrimary>maxPop) fullPrimary=true;
+			if (!fullSecondary && newPopSecondary>maxPop) fullSecondary=true;
+
+			if (fullMix && fullPrimary && fullSecondary) break;
+
+			popMix=newPopMix;
+			popSecondary=newPopSecondary;
+			popPrimary=newPopPrimary;
+			if (!fullMix) {
+				if (assignedPrimary) assignmentsMix.push_back(1);
+				else if (assignedSecondary) assignmentsMix.push_back(2);
+				else assignmentsMix.push_back(0);
+			}
+			if (!fullPrimary) {
+				if (assignedPrimary) assignmentsPrimary.push_back(1);
+				else assignmentsPrimary.push_back(0);
+			}
+			if (!fullSecondary) {
+				if (assignedSecondary) assignmentsSecondary.push_back(2);
+				else assignmentsSecondary.push_back(0);
+			}
 		}
 		else {
-			assignments.push_back(0);
+			assignmentsMix.push_back(0);
+			assignmentsSecondary.push_back(0);
+			assignmentsPrimary.push_back(0);
 		}
+
 	}
-	bestCandidate.fit=pop/mBaseModel.getCenterTypes()[t].cost;
-	bestCandidate.assigns=assignments;
 	bestCandidate.type=t;
 	bestCandidate.loc=l;
-	
-	// Second pass, secondary heavy
-	assignments.clear();	
-	float totalSecondaryPop=0;
-	for (uint32_t ci = 0; ci < mNumCities; ++ci) {
-		uint32_t c = *(ptr + ci);
-		if (mCityCenterAssignment[c].second == NOT_ASSIGNED && isCityLocationTypeCompatible(c, l, t, 1)){
-			float newPop=totalSecondaryPop+mBaseModel.getCities()[c].population*0.1;
-			if (newPop>maxPop) {
-				break;	
-			}
-			assignments.push_back(2);
-			totalSecondaryPop+=mBaseModel.getCities()[c].population*0.1;
-		}
-		else assignments.push_back(0);
+	if (popMix>=popSecondary && popMix>=popPrimary) {
+		bestCandidate.fit=popMix/mBaseModel.getCenterTypes()[t].cost;
+		bestCandidate.assigns=assignmentsMix;
 	}
-	for (uint32_t ci = 0; ci < assignments.size(); ++ci) {
-		uint32_t c = *(ptr + ci);
-		if (assignments[ci]==2) {
-			totalSecondaryPop-=mBaseModel.getCities()[c].population*0.1;
-		}
-		if (mCityCenterAssignment[c].first == NOT_ASSIGNED && isCityLocationTypeCompatible(c, l, t, 0)) {
-			totalSecondaryPop += mBaseModel.getCities()[c].population;
-			if (totalSecondaryPop > maxPop) {
-				break;
-			}
-			assignments[ci]=1;
-			float fit=totalSecondaryPop/mBaseModel.getCenterTypes()[t].cost;
-			if (fit>bestCandidate.fit) {
-				bestCandidate.fit=fit;
-				bestCandidate.assigns=assignments;
-				bestCandidate.type=t;
-				bestCandidate.loc=l;
-			}
-		}
+	else if (popPrimary>=popSecondary && popPrimary>=popMix) {
+		bestCandidate.fit=popPrimary/mBaseModel.getCenterTypes()[t].cost;
+		bestCandidate.assigns=assignmentsPrimary;
+	}
+	else {
+		bestCandidate.fit=popSecondary/mBaseModel.getCenterTypes()[t].cost;
+		bestCandidate.assigns=assignmentsSecondary;
 	}
 	return bestCandidate;
 }
@@ -198,30 +218,7 @@ GreedyModel::Candidate GreedyModel::findBestAddition() const
 
 void GreedyModel::applyAction(Candidate bestActions)
 {
-	/*
-	float pop = 0.0f;
-	const float maxPop = mBaseModel.getCenterTypes()[t].maxPop;
 
-	const uint32_t* ptr = getCitiesSorted(l);
-	for (uint32_t ci = 0; ci < mNumCities; ++ci) {
-		uint32_t c = *(ptr + ci);
-		if (mCityCenterAssignment[c].first == NOT_ASSIGNED && isCityLocationTypeCompatible(c, l, t, 0)) {
-
-			float newPop = pop + mBaseModel.getCities()[c].population;
-			if (newPop <= maxPop) {
-				pop = newPop;
-				mCityCenterAssignment[c].first = l;
-			}
-		}
-		else if (mCityCenterAssignment[c].second == NOT_ASSIGNED && isCityLocationTypeCompatible(c, l, t, 1)) {
-			float newPop = pop + 0.1f * mBaseModel.getCities()[c].population;
-			if (newPop <= maxPop) {
-				pop = newPop;
-				mCityCenterAssignment[c].second = l;
-			}
-			
-		}
-	}*/
 	const uint32_t* ptr = getCitiesSorted(bestActions.loc);
 	for (uint32_t ci=0;ci<bestActions.assigns.size();++ci) {
 		uint32_t c = *(ptr + ci);
