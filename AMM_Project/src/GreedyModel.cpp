@@ -183,8 +183,6 @@ std::ostream& operator<<(std::ostream& os, const GreedyModel& dt)
 		centerServing.insert({ i, 0.0f });
 	}
 
-	os << "Resulting cost: " << dt.getCentersCost() << "\n";
-	os << "Is a solution?: " << dt.isSolution() << "\n";
 	os << "\nCities assigned to:\n";
 	for (uint32_t i = 0; i < dt.mCityCenterAssignment.size(); ++i) {
 		os << "City " << i << " first: " << static_cast<int>(dt.mCityCenterAssignment[i].first != dt.NOT_ASSIGNED ? dt.mCityCenterAssignment[i].first : -1) 
@@ -203,6 +201,19 @@ std::ostream& operator<<(std::ostream& os, const GreedyModel& dt)
 		if (dt.mLocationTypeAssignment[i] != dt.NOT_ASSIGNED) {
 			os << "Location " << i << " assigned with center type " << dt.mLocationTypeAssignment[i] << "\n";
 			os << "\tServing to " << centerServing.at(i) << "/" << dt.mBaseModel.getCenterTypes()[dt.mLocationTypeAssignment[i]].maxPop << " population\n";
+		}
+	}
+
+	os << "\nResulting cost: " << dt.getCentersCost() << "\n";
+	os << "Is a solution?: " << dt.isSolution() << "\n";
+	if (!dt.isSolution()) {
+		uint32_t i = 0;
+		for (const std::pair<uint32_t, uint32_t >& city : dt.mCityCenterAssignment) {
+			if (city.first == dt.NOT_ASSIGNED || city.second == dt.NOT_ASSIGNED) {
+				os << "City " << i << " is missing " << (city.first == dt.NOT_ASSIGNED ? "first " : "") << (city.second == dt.NOT_ASSIGNED? "second" : "") << "\n";
+				
+			}
+			++i;
 		}
 	}
 
