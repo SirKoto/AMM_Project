@@ -9,7 +9,7 @@ typedef struct vec2
 	float x, y;
 
 	float sqDist(const vec2& o) const {
-		return x * o.x + y * o.y;
+		return (x - o.x)*(x - o.x) + (y - o.y)*(y - o.y);
 	}
 
 	float dist(const vec2& o) const {

@@ -21,10 +21,13 @@
     <ClCompile Include="src\Model.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\ProcessedModel.cpp">
+    <ClCompile Include="src\GreedyModel.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\GreedyModel.cpp">
+    <ClCompile Include="src\IModel.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\BasicGreedyModel.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -32,10 +35,13 @@
     <ClInclude Include="src\Model.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\ProcessedModel.h">
+    <ClInclude Include="src\GreedyModel.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\GreedyModel.h">
+    <ClInclude Include="src\IModel.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\BasicGreedyModel.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

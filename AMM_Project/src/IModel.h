@@ -3,10 +3,14 @@
 #include "Model.h"
 #include <vector>
 
-class ProcessedModel
+class IModel
 {
 public:
-	ProcessedModel(const Model& model);
+	IModel(const Model& model);
+
+	float getCentersCost() const;
+
+	bool isSolution() const;
 
 protected:
 
@@ -18,10 +22,20 @@ protected:
 	const uint32_t mNumTypes;
 	const uint32_t mNumCities;
 
+	static constexpr uint32_t NOT_ASSIGNED = std::numeric_limits<uint32_t>::max();
+
+	std::vector<uint32_t> mLocationTypeAssignment;
+
+	std::vector<std::pair<uint32_t, uint32_t>> mCityCenterAssignment;
+
 	bool isLocationPairCompatible(const uint32_t& l1, const uint32_t& l2) const;
+
+	bool locationIsBlocked(const uint32_t l) const;
+
 
 	// c < mNumCities, l < mNumLocations, t < mNumTypes, isSecondary {0,1}
 	bool isCityLocationTypeCompatible(const uint32_t& c, const uint32_t& l, const uint32_t& t, const uint32_t& isSecondary) const;
 
+	friend std::ostream& operator<<(std::ostream& os, const IModel& dt);
 };
 

@@ -139,15 +139,17 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="src\BasicGreedyModel.cpp" />
     <ClCompile Include="src\GreedyModel.cpp" />
     <ClCompile Include="src\main.cpp" />
     <ClCompile Include="src\Model.cpp" />
-    <ClCompile Include="src\ProcessedModel.cpp" />
+    <ClCompile Include="src\IModel.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="src\BasicGreedyModel.h" />
     <ClInclude Include="src\GreedyModel.h" />
     <ClInclude Include="src\Model.h" />
-    <ClInclude Include="src\ProcessedModel.h" />
+    <ClInclude Include="src\IModel.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
