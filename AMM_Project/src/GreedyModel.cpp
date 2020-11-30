@@ -3,7 +3,7 @@
 #include <algorithm>
 #include <map>
 
-GreedyModel::GreedyModel(const Model& model) : ProcessedModel(model)
+GreedyModel::GreedyModel(const Model& model) : IModel(model)
 {
 	mLocationTypeAssignment.resize(mNumLocations, NOT_ASSIGNED);
 	mCityCenterAssignment.resize(mNumCities, { NOT_ASSIGNED, NOT_ASSIGNED });

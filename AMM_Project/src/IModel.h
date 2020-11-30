@@ -3,10 +3,10 @@
 #include "Model.h"
 #include <vector>
 
-class ProcessedModel
+class IModel
 {
 public:
-	ProcessedModel(const Model& model);
+	IModel(const Model& model);
 
 	float getCentersCost() const;
 
@@ -36,6 +36,6 @@ protected:
 	// c < mNumCities, l < mNumLocations, t < mNumTypes, isSecondary {0,1}
 	bool isCityLocationTypeCompatible(const uint32_t& c, const uint32_t& l, const uint32_t& t, const uint32_t& isSecondary) const;
 
-	friend std::ostream& operator<<(std::ostream& os, const ProcessedModel& dt);
+	friend std::ostream& operator<<(std::ostream& os, const IModel& dt);
 };
 

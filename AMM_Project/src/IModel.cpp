@@ -1,8 +1,9 @@
-#include "ProcessedModel.h"
+#include "IModel.h"
+
 #include <map>
 #include <iostream>
 
-ProcessedModel::ProcessedModel(const Model& model) :
+IModel::IModel(const Model& model) :
 	mBaseModel(model),
 	mNumLocations(static_cast<uint32_t>(model.getLocations().size())),
 	mNumTypes(static_cast<uint32_t>(model.getCenterTypes().size())),
@@ -39,7 +40,7 @@ ProcessedModel::ProcessedModel(const Model& model) :
 	}
 }
 
-float ProcessedModel::getCentersCost() const
+float IModel::getCentersCost() const
 {
 	float sum = 0.0f;
 	for (const uint32_t& type : mLocationTypeAssignment) {
@@ -50,7 +51,7 @@ float ProcessedModel::getCentersCost() const
 	return sum;
 }
 
-bool ProcessedModel::isSolution() const
+bool IModel::isSolution() const
 {
 	for (const std::pair<uint32_t, uint32_t >& city : mCityCenterAssignment) {
 		if (city.first == NOT_ASSIGNED || city.second == NOT_ASSIGNED) {
@@ -60,13 +61,13 @@ bool ProcessedModel::isSolution() const
 	return true;
 }
 
-bool ProcessedModel::isLocationPairCompatible(const uint32_t& l1, const uint32_t& l2) const
+bool IModel::isLocationPairCompatible(const uint32_t& l1, const uint32_t& l2) const
 {
 
 	return mCompatibleLocations[(l1 * mNumLocations + l2)];
 }
 
-bool ProcessedModel::isCityLocationTypeCompatible(
+bool IModel::isCityLocationTypeCompatible(
 	const uint32_t& c,
 	const uint32_t& l,
 	const uint32_t& t, 
@@ -75,7 +76,7 @@ bool ProcessedModel::isCityLocationTypeCompatible(
 	return mCompatibleCityLocationType[(((c * mNumLocations + l) * mNumTypes + t) * 2 + isSecondary)];
 }
 
-bool ProcessedModel::locationIsBlocked(const uint32_t l) const
+bool IModel::locationIsBlocked(const uint32_t l) const
 {
 	for (uint32_t l2 = 0; l2 < mNumLocations; ++l2) {
 		if (mLocationTypeAssignment[l] != NOT_ASSIGNED && !isLocationPairCompatible(l, l2)) {
@@ -85,7 +86,7 @@ bool ProcessedModel::locationIsBlocked(const uint32_t l) const
 	return false;
 }
 
-std::ostream& operator<<(std::ostream& os, const ProcessedModel& dt)
+std::ostream& operator<<(std::ostream& os, const IModel& dt)
 {
 	std::map<uint32_t, float> centerServing;
 	for (uint32_t i = 0; i < dt.mNumLocations; ++i) {

@@ -3,10 +3,10 @@
 #include <numeric>
 #include <iostream>
 
-#include "ProcessedModel.h"
+#include "IModel.h"
 
 
-class GreedyModel : public ProcessedModel
+class GreedyModel : public IModel
 {
 public:
 
