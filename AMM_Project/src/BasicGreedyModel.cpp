@@ -1,9 +1,9 @@
-#include "GreedyModel.h"
+#include "BasicGreedyModel.h"
 
 #include <algorithm>
 #include <map>
 
-GreedyModel::GreedyModel(const Model& model) : IModel(model)
+BasicGreedyModel::BasicGreedyModel(const Model& model) : IModel(model)
 {
 	mLocationTypeAssignment.resize(mNumLocations, NOT_ASSIGNED);
 	mCityCenterAssignment.resize(mNumCities, { NOT_ASSIGNED, NOT_ASSIGNED });
@@ -29,7 +29,7 @@ GreedyModel::GreedyModel(const Model& model) : IModel(model)
 	}
 }
 
-void GreedyModel::runGreedy()
+void BasicGreedyModel::runGreedy()
 {
 	auto numToAssign = [&]() -> float
 	{
@@ -60,7 +60,7 @@ void GreedyModel::runGreedy()
 }
 
 
-float GreedyModel::tryAddGreedy(const uint32_t l, const uint32_t t) const
+float BasicGreedyModel::tryAddGreedy(const uint32_t l, const uint32_t t) const
 {
 	if (mLocationTypeAssignment[l] != NOT_ASSIGNED || locationIsBlocked(l)) {
 		return std::numeric_limits<float>::infinity();
@@ -92,12 +92,12 @@ float GreedyModel::tryAddGreedy(const uint32_t l, const uint32_t t) const
 	return mBaseModel.getCenterTypes()[t].cost / pop;
 }
 
-const uint32_t* GreedyModel::getCitiesSorted(const uint32_t l) const
+const uint32_t* BasicGreedyModel::getCitiesSorted(const uint32_t l) const
 {
 	return mSortedCities.data() + l * mNumCities;
 }
 
-std::pair<uint32_t, uint32_t> GreedyModel::findBestAddition() const
+std::pair<uint32_t, uint32_t> BasicGreedyModel::findBestAddition() const
 {
 	std::pair<uint32_t, uint32_t> res = {NOT_ASSIGNED, NOT_ASSIGNED};
 	float actualFitness = std::numeric_limits<float>::infinity();
@@ -117,7 +117,7 @@ std::pair<uint32_t, uint32_t> GreedyModel::findBestAddition() const
 	return res;
 }
 
-void GreedyModel::applyAction(const uint32_t l, const uint32_t t)
+void BasicGreedyModel::applyAction(const uint32_t l, const uint32_t t)
 {
 	float pop = 0.0f;
 	const float maxPop = mBaseModel.getCenterTypes()[t].maxPop;

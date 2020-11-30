@@ -6,11 +6,11 @@
 #include "IModel.h"
 
 
-class GreedyModel : public IModel
+class BasicGreedyModel : public IModel
 {
 public:
 
-	GreedyModel(const Model& model);
+	BasicGreedyModel(const Model& model);
 
 	void runGreedy();
 
