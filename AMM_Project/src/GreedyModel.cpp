@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <map>
+#include <thread>
 
 GreedyModel::GreedyModel(const Model& model) : ProcessedModel(model)
 {
@@ -201,14 +202,30 @@ GreedyModel::Candidate GreedyModel::findBestAddition() const
 	Candidate res ;
 	float actualFitness = -1.0;
 	res.fit=-1.0;
+	float bestFit = -1.0;
 
-	for (uint32_t l = 0; l < mNumLocations; ++l) {
-		for (uint32_t t = 0; t < mNumTypes; ++t) {
-			Candidate candidate = tryAddGreedy(l, t);
+	const int processor_count = std::thread::hardware_concurrency();
+	int perThread=mNumLocations/processor_count;
 
-			if (candidate.fit > actualFitness) {
-				actualFitness = candidate.fit;
-				res=candidate;
+    #pragma omp parallel for shared(bestFit, res)
+	for (int c = 0; c < processor_count; ++c) {
+		Candidate bestCandidate;
+		bestCandidate.fit=-1.0;
+		for (int l = c*perThread ; l < (c+1)*perThread && l < mNumLocations; ++l) {
+			for (uint32_t t = 0; t < mNumTypes; ++t) {
+				Candidate currentCandidate = tryAddGreedy(l, t);
+				if (currentCandidate.fit>bestCandidate.fit) {
+					bestCandidate=currentCandidate;
+				}
+			}
+		}
+		if (bestCandidate.fit > bestFit) {
+			#pragma omp critical
+			{
+				if (bestCandidate.fit > bestFit) {
+					bestFit = bestCandidate.fit;
+					res = bestCandidate;
+				}
 			}
 		}
 	}
