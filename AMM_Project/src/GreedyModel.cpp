@@ -205,6 +205,7 @@ GreedyModel::Candidate GreedyModel::findBestAddition() const
 
 	const int processor_count = std::thread::hardware_concurrency();
 	int perThread=mNumLocations/processor_count;
+	if (perThread<1) perThread=1;
 
     #pragma omp parallel for shared(res)
 	for (int c = 0; c < processor_count; ++c) {
