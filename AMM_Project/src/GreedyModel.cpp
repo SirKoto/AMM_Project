@@ -202,12 +202,11 @@ GreedyModel::Candidate GreedyModel::findBestAddition() const
 	Candidate res ;
 	float actualFitness = -1.0;
 	res.fit=-1.0;
-	float bestFit = -1.0;
 
 	const int processor_count = std::thread::hardware_concurrency();
 	int perThread=mNumLocations/processor_count;
 
-    #pragma omp parallel for shared(bestFit, res)
+    #pragma omp parallel for shared(res)
 	for (int c = 0; c < processor_count; ++c) {
 		Candidate bestCandidate;
 		bestCandidate.fit=-1.0;
@@ -219,11 +218,10 @@ GreedyModel::Candidate GreedyModel::findBestAddition() const
 				}
 			}
 		}
-		if (bestCandidate.fit > bestFit) {
+		if (bestCandidate.fit > res.fit) {
 			#pragma omp critical
 			{
-				if (bestCandidate.fit > bestFit) {
-					bestFit = bestCandidate.fit;
+				if (bestCandidate.fit > res.fit) {
 					res = bestCandidate;
 				}
 			}
