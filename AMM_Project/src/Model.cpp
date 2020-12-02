@@ -69,7 +69,7 @@ bool Model::readFromFile(const std::string& fileName)
             for (CenterType& type : centerTypes) {
                 float aux;
                 stream >> aux;
-                type.serveDist=aux*aux;
+                type.serveDist=aux;
             }
             std::getline(stream, tmp); // ignore line
         }
@@ -90,7 +90,7 @@ bool Model::readFromFile(const std::string& fileName)
         else if (op == "d_center") {
             float aux;
             stream >> aux;
-            this->minDistBetweenCenters=aux*aux;;
+            this->minDistBetweenCenters=aux;;
             std::getline(stream, tmp); // ignore line
         }
         else {
