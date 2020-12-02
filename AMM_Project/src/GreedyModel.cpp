@@ -3,7 +3,7 @@
 #include <algorithm>
 #include <map>
 #include <thread>
-
+#include <omp.h>
 GreedyModel::GreedyModel(const Model& model) : ProcessedModel(model)
 {
 	mLocationTypeAssignment.resize(mNumLocations, NOT_ASSIGNED);
@@ -199,38 +199,41 @@ const uint32_t* GreedyModel::getCitiesSorted(const uint32_t l) const
 
 GreedyModel::Candidate GreedyModel::findBestAddition() const
 {
-	Candidate res ;
-	float actualFitness = -1.0;
-	res.fit=-1.0;
-
+    Candidate res ;
+    float actualFitness = -1.0;
+    res.fit=-1.0;
+	    
 	const int processor_count = std::thread::hardware_concurrency();
-	int perThread=mNumLocations/processor_count;
-	if (perThread<1) perThread=1;
+	//omp_set_num_threads(4);
 
-    #pragma omp parallel for shared(res)
-	for (int c = 0; c < processor_count; ++c) {
-		Candidate bestCandidate;
-		bestCandidate.fit=-1.0;
-		for (int l = c*perThread ; l < (c+1)*perThread && l < mNumLocations; ++l) {
-			for (uint32_t t = 0; t < mNumTypes; ++t) {
-				Candidate currentCandidate = tryAddGreedy(l, t);
-				if (currentCandidate.fit>bestCandidate.fit) {
-					bestCandidate=currentCandidate;
-				}
-			}
-		}
-		if (bestCandidate.fit > res.fit) {
-			#pragma omp critical
-			{
-				if (bestCandidate.fit > res.fit) {
-					res = bestCandidate;
-				}
-			}
-		}
-	}
+    int perThread=mNumLocations/processor_count;
+    if (perThread<1) perThread=1;
+    #pragma omp parallel shared(res) num_threads(processor_count)
+    {
+        const int c = omp_get_thread_num(); 
+        Candidate bestCandidate;
+        bestCandidate.fit=-1.0;
+        for (int l = c*perThread ; l < (c+1)*perThread && l < mNumLocations; ++l) {
+            for (uint32_t t = 0; t < mNumTypes; ++t) {
+                Candidate currentCandidate = tryAddGreedy(l, t);
+                if (currentCandidate.fit>bestCandidate.fit) {
+                    bestCandidate=currentCandidate;
+                }
+            }
+        }
+        if (bestCandidate.fit > res.fit) {
+            #pragma omp critical
+            {
+                if (bestCandidate.fit > res.fit) {
+                    res = bestCandidate;
+                }
+            }
+        }
+    }
 
-	return res;
+    return res;
 }
+
 
 void GreedyModel::applyAction(Candidate bestActions)
 {
