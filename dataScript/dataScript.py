@@ -18,6 +18,7 @@ cost=cap//2 + np.random.randint(0,2)
 d_city=np.random.randint(2,10,nTypes)
 
 realDis=np.argmax(d_city)
+nLocations=nLocations*2
 
 notValid=True
 while notValid:
