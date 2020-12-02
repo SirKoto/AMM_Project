@@ -37,17 +37,19 @@ protected:
     };
 
 
-    std::vector<float> mCityHeuristicBuffer;
+    std::vector<double> mCityHeuristicBuffer;
     std::vector<float> mLocationAssignedPopulation;
+    std::vector<double> mLocationHeuristicBuffer;
 
     float mMaxPop;
 
-    float mActualAssignmentHeuristic = 0.0f;
+    double mActualAssignmentHeuristic = 0.0f;
 
     // Modifies op, so that it is the oposite operation
     void doFixedCentersOp(OperationAssignments& op);
 
     void updateHeuristicCity(uint32_t city);
+    void updateHeuristicLocation(uint32_t location);
 
     bool isCityCenterAssignmentFeasible() const;
 

@@ -8,7 +8,8 @@
 LocalSearchModel::LocalSearchModel(const Model& model) : 
 	IModel(model), 
 	mCityHeuristicBuffer(model.getCities().size(), 0.0f),
-	mLocationAssignedPopulation(model.getLocations().size(), 0.0f)
+	mLocationAssignedPopulation(model.getLocations().size(), 0.0f),
+	mLocationHeuristicBuffer(model.getLocations().size(), 0.0f)
 {
 	this->mMaxPop = 0.0f;
 	for (const City& c : model.getCities())
@@ -26,7 +27,8 @@ LocalSearchModel::LocalSearchModel(const Model& model) :
 LocalSearchModel::LocalSearchModel(const IModel* model) : 
 	IModel(model),
 	mCityHeuristicBuffer(model->mNumCities, 0.0f),
-	mLocationAssignedPopulation(model->mNumLocations, 0.0f)
+	mLocationAssignedPopulation(model->mNumLocations, 0.0f),
+	mLocationHeuristicBuffer(model->mNumLocations, 0.0f)
 {
 	this->mMaxPop = 0.0f;
 	for (const City& c : model->mBaseModel.getCities())
@@ -55,6 +57,9 @@ void LocalSearchModel::doFixedCentersOp(OperationAssignments& op)
 			mLocationAssignedPopulation[op.location] += mBaseModel.getCities()[op.city].population;
 		}
 		std::swap(mCityCenterAssignment[op.city].first, op.location);
+		updateHeuristicCity(op.city);
+		updateHeuristicLocation(mCityCenterAssignment[op.city].first);
+		updateHeuristicLocation(op.location);
 		break;
 	case OperationAssignments::Op::eSetSecondary:
 		// Remove the population and add annew 10%
@@ -66,6 +71,9 @@ void LocalSearchModel::doFixedCentersOp(OperationAssignments& op)
 			mLocationAssignedPopulation[op.location] += 0.1f * mBaseModel.getCities()[op.city].population;
 		}
 		std::swap(mCityCenterAssignment[op.city].second, op.location);
+		updateHeuristicCity(op.city);
+		updateHeuristicLocation(mCityCenterAssignment[op.city].second);
+		updateHeuristicLocation(op.location);
 		break;
 	case OperationAssignments::Op::eSwapPP:
 		// Only do swap when the two cities are assigned to a center
@@ -76,6 +84,10 @@ void LocalSearchModel::doFixedCentersOp(OperationAssignments& op)
 		assert(mLocationAssignedPopulation[mCityCenterAssignment[op.city].first] >= -1e-3f);
 		assert(mLocationAssignedPopulation[mCityCenterAssignment[op.city2].first] >= -1e-3f);
 		std::swap(mCityCenterAssignment[op.city].first, mCityCenterAssignment[op.city2].first);
+		updateHeuristicCity(op.city);
+		updateHeuristicCity(op.city2);
+		updateHeuristicLocation(mCityCenterAssignment[op.city].first);
+		updateHeuristicLocation(mCityCenterAssignment[op.city2].first);
 		break;
 	case OperationAssignments::Op::eSwapPS:
 		assert(mCityCenterAssignment[op.city].first != NOT_ASSIGNED);
@@ -88,6 +100,10 @@ void LocalSearchModel::doFixedCentersOp(OperationAssignments& op)
 		mLocationAssignedPopulation[mCityCenterAssignment[op.city].first] += mBaseModel.getCities()[op.city].population;
 		assert(mLocationAssignedPopulation[mCityCenterAssignment[op.city].first] >= -1e-3f);
 		assert(mLocationAssignedPopulation[mCityCenterAssignment[op.city2].second] >= -1e-3f);
+		updateHeuristicCity(op.city);
+		updateHeuristicCity(op.city2);
+		updateHeuristicLocation(mCityCenterAssignment[op.city].first);
+		updateHeuristicLocation(mCityCenterAssignment[op.city2].second);
 		break; 
 	case OperationAssignments::Op::eSwapSS:
 		mLocationAssignedPopulation[mCityCenterAssignment[op.city].second] -= 0.1f * mBaseModel.getCities()[op.city].population;
@@ -97,6 +113,10 @@ void LocalSearchModel::doFixedCentersOp(OperationAssignments& op)
 		assert(mLocationAssignedPopulation[mCityCenterAssignment[op.city].second] >= -1e-3f);
 		assert(mLocationAssignedPopulation[mCityCenterAssignment[op.city2].second] >= -1e-3f);
 		std::swap(mCityCenterAssignment[op.city].second, mCityCenterAssignment[op.city2].second);
+		updateHeuristicCity(op.city);
+		updateHeuristicCity(op.city2);
+		updateHeuristicLocation(mCityCenterAssignment[op.city].second);
+		updateHeuristicLocation(mCityCenterAssignment[op.city2].second);
 		break;
 	default:
 		assert(false);
@@ -106,6 +126,7 @@ void LocalSearchModel::doFixedCentersOp(OperationAssignments& op)
 
 void LocalSearchModel::updateHeuristicCity(uint32_t city)
 {
+
 	if (city == NOT_ASSIGNED) {
 		return;
 	}
@@ -115,36 +136,53 @@ void LocalSearchModel::updateHeuristicCity(uint32_t city)
 #define SQ(x, k) (x)*(x)*(k)
 
 	const float pop = this->mBaseModel.getCities()[city].population;
-	float newH = 0.0f;
+	double newH = 0.0f;
 
 	if (mCityCenterAssignment[city].first == NOT_ASSIGNED) {
 		newH += SQ(mMaxPop - pop + 2, 300);
 	}
-	else {
+	else if(false){
 		// if not compatible assignment because of distance
 		uint32_t l = mCityCenterAssignment[city].first;
 		uint32_t t = mLocationTypeAssignment[l];
 		if (!isCityLocationTypeCompatible(city, l, t, false)) {
 			newH += mBaseModel.getLocations()[l].sqDist(mBaseModel.getCities()[city].cityPos);
 		}
-		if (mLocationAssignedPopulation[l] > mBaseModel.getCenterTypes()[t].maxPop) {
-			newH += SQ(mLocationAssignedPopulation[l] / mBaseModel.getCenterTypes()[t].maxPop * 20.0f, 1.0f);
-		}
-		else {
-			newH += mLocationAssignedPopulation[l] / mBaseModel.getCenterTypes()[t].maxPop * 3.0f;
-		}
 	}
 
 	if (mCityCenterAssignment[city].second == NOT_ASSIGNED) {
 		newH += SQ(mMaxPop - pop + 2, 100);
 	}
-	else {
+	else if(false){
 		// if not compatible assignment because of distance
 		uint32_t l = mCityCenterAssignment[city].second;
 		uint32_t t = mLocationTypeAssignment[l];
 		if (!isCityLocationTypeCompatible(city, l, t, true)) {
 			newH += mBaseModel.getLocations()[l].sqDist(mBaseModel.getCities()[city].cityPos);
 		}
+		
+	}
+
+	mCityHeuristicBuffer[city] = newH;
+	mActualAssignmentHeuristic += newH;
+#undef SQ
+}
+
+void LocalSearchModel::updateHeuristicLocation(uint32_t l)
+{
+	if (l == NOT_ASSIGNED) {
+		return;
+	}
+
+	uint32_t t = mLocationTypeAssignment[l];
+
+
+	mActualAssignmentHeuristic -= mLocationHeuristicBuffer[l];
+	double newH = 0.0f;
+
+#define SQ(x, k) (x)*(x)*(k)
+
+	if (t != NOT_ASSIGNED) {
 		if (mLocationAssignedPopulation[l] > mBaseModel.getCenterTypes()[t].maxPop) {
 			newH += SQ(mLocationAssignedPopulation[l] / mBaseModel.getCenterTypes()[t].maxPop * 10.0f, 1.0f);
 		}
@@ -153,9 +191,10 @@ void LocalSearchModel::updateHeuristicCity(uint32_t city)
 		}
 	}
 
-	mCityHeuristicBuffer[city] = newH;
+	mLocationHeuristicBuffer[l] = newH;
 	mActualAssignmentHeuristic += newH;
 #undef SQ
+
 }
 
 bool LocalSearchModel::isCityCenterAssignmentFeasible() const
@@ -227,12 +266,17 @@ void LocalSearchModel::localSearchAssignments()
 	for (uint32_t c = 0; c < mNumCities; ++c) {
 		updateHeuristicCity(c);
 	}
+	for (uint32_t l = 0; l < mNumLocations; ++l) {
+		if (mLocationTypeAssignment[l] != NOT_ASSIGNED) {
+			updateHeuristicLocation(l);
+		}
+	}
 
 	constexpr int32_t limIt = 10000;
 	int32_t maxIt = limIt;
 	bool improvement = true;		
-	float bestH = std::numeric_limits<float>::infinity();
-	uint32_t tmp;
+	double bestH = std::numeric_limits<float>::infinity();
+
 	while (!isCityCenterAssignmentFeasible() && 
 		maxIt-- && 
 		improvement)
@@ -240,6 +284,7 @@ void LocalSearchModel::localSearchAssignments()
 		assertCityPopulation();
 
 		OperationAssignments op{};
+		OperationAssignments opCopy;
 		improvement = false;
 
 		auto updateOp = [&]() {
@@ -259,21 +304,23 @@ void LocalSearchModel::localSearchAssignments()
 					op.location = l;
 					if (true || mCityCenterAssignment[c].first == NOT_ASSIGNED) {
 						op.op = OperationAssignments::Op::eSetPrimary;
-						doFixedCentersOp(op);
-						updateHeuristicCity(c);
-						doFixedCentersOp(op);
+						opCopy = op;
+						double ac = mActualAssignmentHeuristic;
+						doFixedCentersOp(opCopy);
 						updateOp();
-						updateHeuristicCity(c);
+						doFixedCentersOp(opCopy);
+						assert(std::abs(ac - mActualAssignmentHeuristic) <= 1e-3);
 					}
 					assert(op.location == l);
 					assert(op.city == c);
-					if (true ||mCityCenterAssignment[c].second == NOT_ASSIGNED) {
+					if (true || mCityCenterAssignment[c].second == NOT_ASSIGNED) {
 						op.op = OperationAssignments::Op::eSetSecondary;
-						doFixedCentersOp(op);
-						updateHeuristicCity(c);
-						doFixedCentersOp(op);
+						opCopy = op;
+						double ac = mActualAssignmentHeuristic;
+						doFixedCentersOp(opCopy);
 						updateOp();
-						updateHeuristicCity(c);
+						doFixedCentersOp(opCopy);
+						assert(std::abs(ac - mActualAssignmentHeuristic) <= 1e-3);
 					}
 					assert(op.location == l);
 					assert(op.city == c);
@@ -288,12 +335,8 @@ void LocalSearchModel::localSearchAssignments()
 					op.city = c;
 					op.city2 = c2;
 					doFixedCentersOp(op);
-					updateHeuristicCity(c);
-					updateHeuristicCity(c2);
-					doFixedCentersOp(op);
 					updateOp();
-					updateHeuristicCity(c);
-					updateHeuristicCity(c2);
+					doFixedCentersOp(op);
 				}
 				if (mCityCenterAssignment[c].second != NOT_ASSIGNED &&
 					mCityCenterAssignment[c2].second != NOT_ASSIGNED) {
@@ -301,12 +344,8 @@ void LocalSearchModel::localSearchAssignments()
 					op.city = c;
 					op.city2 = c2;
 					doFixedCentersOp(op);
-					updateHeuristicCity(c);
-					updateHeuristicCity(c2);
-					doFixedCentersOp(op);
 					updateOp();
-					updateHeuristicCity(c);
-					updateHeuristicCity(c2);
+					doFixedCentersOp(op);
 				}
 
 				if (mCityCenterAssignment[c].first != NOT_ASSIGNED &&
@@ -315,12 +354,8 @@ void LocalSearchModel::localSearchAssignments()
 					op.city = c;
 					op.city2 = c2;
 					doFixedCentersOp(op);
-					updateHeuristicCity(c);
-					updateHeuristicCity(c2);
-					doFixedCentersOp(op);
 					updateOp();
-					updateHeuristicCity(c);
-					updateHeuristicCity(c2);
+					doFixedCentersOp(op);
 				}
 
 				if (mCityCenterAssignment[c].second != NOT_ASSIGNED &&
@@ -329,29 +364,29 @@ void LocalSearchModel::localSearchAssignments()
 					op.city = c2;
 					op.city2 = c;
 					doFixedCentersOp(op);
-					updateHeuristicCity(c);
-					updateHeuristicCity(c2);
-					doFixedCentersOp(op);
 					updateOp();
-					updateHeuristicCity(c);
-					updateHeuristicCity(c2);
+					doFixedCentersOp(op);
 				}
 			}
 		}
 
 
-		if (bestOp.op != OperationAssignments::Op::eNope) {
+		if (improvement) {
+			if (mActualAssignmentHeuristic == 400.0f) {
+				std::cout << "uwu" << std::endl;
+			}
 			doFixedCentersOp(bestOp);
-			updateHeuristicCity(bestOp.city);
+			//updateHeuristicCity(bestOp.city);
 			if (bestOp.op != OperationAssignments::Op::eSetPrimary && 
 				bestOp.op != OperationAssignments::Op::eSetSecondary) {
-				updateHeuristicCity(bestOp.city2);
+				//updateHeuristicCity(bestOp.city2);
 			}
+			assert(std::abs(bestH - mActualAssignmentHeuristic) <= 1e-3);
 			mActualAssignmentHeuristic = bestH;
 		}
 
 	}
 
-	std::cout << "Num it: " << limIt - maxIt << ", still improving: " << improvement << std::endl;
+	std::cout << "Num it: " << limIt - maxIt << ", still improving: " << improvement << ", sat: " << isCityCenterAssignmentFeasible() << std::endl;
 #undef updateOP
 }
