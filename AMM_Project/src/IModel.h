@@ -7,10 +7,14 @@ class IModel
 {
 public:
 	IModel(const Model& model);
+	IModel(const IModel* model);
 
 	float getCentersCost() const;
 
+	bool isSolutionFast() const;
+
 	bool isSolution() const;
+
 
 protected:
 
@@ -18,9 +22,11 @@ protected:
 
 	std::vector<bool> mCompatibleLocations;
 	std::vector<bool> mCompatibleCityLocationType;
+
 	const uint32_t mNumLocations;
 	const uint32_t mNumTypes;
 	const uint32_t mNumCities;
+
 
 	static constexpr uint32_t NOT_ASSIGNED = std::numeric_limits<uint32_t>::max();
 
@@ -37,5 +43,7 @@ protected:
 	bool isCityLocationTypeCompatible(const uint32_t& c, const uint32_t& l, const uint32_t& t, const uint32_t& isSecondary) const;
 
 	friend std::ostream& operator<<(std::ostream& os, const IModel& dt);
+
+	friend class LocalSearchModel;
 };
 

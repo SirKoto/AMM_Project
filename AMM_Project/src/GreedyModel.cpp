@@ -42,7 +42,7 @@ void GreedyModel::runGreedy()
 	};
 
 	float actual = numToAssign();
-	while (!isSolution()) {
+	while (!isSolutionFast()) {
 		std::pair<uint32_t, uint32_t> bestAction = findBestAddition();
 
 		if (bestAction.first == NOT_ASSIGNED) {
