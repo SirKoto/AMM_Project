@@ -44,15 +44,16 @@ void GreedyModel::runGreedy()
 	};
 
 	float actual = numToAssign();
-	while (!isSolution()) {
-		Candidate bestAction = findBestAddition();
 
-		/*if (bestAction.first == NOT_ASSIGNED) {
-			break;
-		}*/
+	const int processor_count = std::thread::hardware_concurrency();
+	int perThread = mNumLocations / processor_count;
+	if (perThread < 1) perThread = 1;
+	std::vector<Candidate> bestCandidates(processor_count);
+
+	while (!isSolution()) {
+		Candidate bestAction = findBestAddition(bestCandidates,perThread,processor_count);
 		if (bestAction.fit<0) break;
 		applyAction(bestAction);
-
 		float n = numToAssign();
 		if (n > actual + 0.01f) {
 			actual = n;
@@ -68,21 +69,22 @@ GreedyModel::Candidate GreedyModel::tryAddGreedy(const uint32_t l, const uint32_
 		infeasible.fit = -1;
 		return infeasible;
 	}
-	assignments.clear();
+	std::fill(assignments.begin(), assignments.end(), 0);
 	uint32_t num = 0;
 	float pop = 0.0f;
 	const float maxPop = mBaseModel.getCenterTypes()[t].maxPop;
 	const uint32_t* ptr = getCitiesSorted(l);
 
 	Candidate bestCandidate;
-	for (uint32_t ci = 0; ci < mNumCities; ++ci) {
+	uint32_t ci = 0;
+	for (ci = 0; ci < mNumCities; ++ci) {
 		uint32_t c = *(ptr + ci);
 		if (mCityCenterAssignment[c].first == NOT_ASSIGNED && isCityLocationTypeCompatible(c, l, t, 0)) {
 			float newPop = pop + mBaseModel.getCities()[c].population;
 			if (newPop > maxPop) {
 				break;
 			}
-			assignments.push_back(1);
+			assignments[ci]=1;
 			pop = newPop;
 		}
 		else if (mCityCenterAssignment[c].second == NOT_ASSIGNED && isCityLocationTypeCompatible(c, l, t, 1)) {
@@ -90,13 +92,14 @@ GreedyModel::Candidate GreedyModel::tryAddGreedy(const uint32_t l, const uint32_
 			if (newPop > maxPop) {
 				break;
 			}
-			assignments.push_back(2);
+			assignments[ci]=2;
 			pop = newPop;
 		}
 		else {
-			assignments.push_back(0);
+			assignments[ci]=0;
 		}
 	}
+	if (ci < mNumCities) assignments[ci + (uint32_t) 1] = 3;
 	bestCandidate.fit = pop / mBaseModel.getCenterTypes()[t].cost;
 	bestCandidate.assigns = assignments;
 	bestCandidate.type = t;
@@ -109,20 +112,16 @@ const uint32_t* GreedyModel::getCitiesSorted(const uint32_t l) const
 	return mSortedCities.data() + l * mNumCities;
 }
 
-GreedyModel::Candidate GreedyModel::findBestAddition() const
+GreedyModel::Candidate GreedyModel::findBestAddition(std::vector<Candidate> bestCandidates,int perThread, int processor_count) const
 {
 	    
-	const int processor_count = std::thread::hardware_concurrency();
 
-    int perThread=mNumLocations/processor_count;
-    if (perThread<1) perThread=1;
-	std::vector<Candidate> bestCandidates(processor_count);
     #pragma omp parallel num_threads(processor_count)
     {
         const int c = omp_get_thread_num(); 
         Candidate bestCandidate;
         bestCandidate.fit=-1.0;
-		std::vector<char> assignments;
+		std::vector<char> assignments(mNumCities);
         for (uint32_t l = c*perThread ; l < (c+1)*perThread && l < mNumLocations; ++l) {
             for (uint32_t t = 0; t < mNumTypes; ++t) {
                 Candidate currentCandidate = tryAddGreedy(l, t, assignments);
@@ -150,16 +149,16 @@ void GreedyModel::applyAction(Candidate bestActions)
 {
 
 	const uint32_t* ptr = getCitiesSorted(bestActions.loc);
-	for (uint32_t ci=0;ci<bestActions.assigns.size();++ci) {
+	for (uint32_t ci=0;ci<mNumCities;++ci) {
 		uint32_t c = *(ptr + ci);
-		if (bestActions.assigns[ci]==1) {
+		if (bestActions.assigns[ci] == 1) {
 			mCityCenterAssignment[c].first = bestActions.loc;
 		}
-		else if (bestActions.assigns[ci]==2) {
+		else if (bestActions.assigns[ci] == 2) {
 			mCityCenterAssignment[c].second = bestActions.loc;
 		}
+		else if (bestActions.assigns[ci] == 3) break;
 	}
-
 	mLocationTypeAssignment[bestActions.loc] = bestActions.type;
 }
 

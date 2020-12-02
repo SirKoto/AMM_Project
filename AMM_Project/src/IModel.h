@@ -30,6 +30,8 @@ protected:
 
 	bool isLocationPairCompatible(const uint32_t& l1, const uint32_t& l2) const;
 
+	bool isLocationPairCompatibleSIMD(const uint32_t& l1, const uint32_t& l2) const;
+
 	bool locationIsBlocked(const uint32_t l) const;
 
 

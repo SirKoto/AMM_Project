@@ -34,7 +34,7 @@ protected:
 
 
 	// Returns location and type
-	Candidate findBestAddition() const;
+	Candidate findBestAddition(std::vector<Candidate> bestCandidates, int perThread, int processor_count) const;
 
 	void applyAction(Candidate bestAction);
 };
