@@ -1,14 +1,3 @@
-import numpy as np
-
-nLocations=100
-nCities=170
-nTypes=10
-
-d_center=1.1
-
-maxX=100
-maxY=100
-
 
 
 
@@ -18,7 +7,6 @@ cost=cap//2 + np.random.randint(0,2)
 d_city=np.random.randint(2,10,nTypes)
 
 realDis=np.argmax(d_city)
-nLocations=nLocations*2
 
 notValid=True
 while notValid:
@@ -108,7 +96,7 @@ extraCap=np.random.randint(0,10)
 cap[indMax]+=extraCap
 cost[indMax]+=extraCap
 with open('output.txt', 'w') as f:
-    print("nLocations = "+str(nLocations)+";", file=f)
+    print("nLocations = "+str(nLocations*2)+";", file=f)
     print("nCities = "+str(nCities)+";", file=f)
     print("nTypes = "+str(nTypes)+";", file=f)
     stringP="["
