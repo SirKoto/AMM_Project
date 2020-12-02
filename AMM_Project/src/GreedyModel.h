@@ -28,7 +28,7 @@ protected:
 	// array of num cities * num locations, 
 	std::vector<uint32_t> mSortedCities;
 
-	Candidate tryAddGreedy(const uint32_t l, const uint32_t t) const;
+	Candidate tryAddGreedy(const uint32_t l, const uint32_t t, std::vector<char> assignments) const;
 
 	const uint32_t* getCitiesSorted(const uint32_t l) const;
 
