@@ -117,7 +117,11 @@ with open('output.txt', 'w') as f:
         stringL+=" ["+str(val[0])+" "+str(val[1])+"]"
     stringL+=" ]"
     print("posLocations = "+stringL+";", file=f)
-    print("d_city = ["+str(d_city[0])+" "+str(d_city[1])+"];", file=f)
+    stringCap="d_city = ["
+    for val in d_city:
+        stringCap+=" "+str(val)
+    stringCap+=" ]"
+    print(stringCap, file=f)
     stringCap="["
     for val in cap:
         stringCap+=" "+str(val)

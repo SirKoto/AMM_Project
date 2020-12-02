@@ -16,18 +16,26 @@ public:
 
 protected:
 
+	typedef struct Candidate
+	{
+		float fit;
+		std::vector<char> assigns;
+		uint32_t type;
+		uint32_t loc;
 
+	} Candidate;
+	
 	// array of num cities * num locations, 
 	std::vector<uint32_t> mSortedCities;
 
-	float tryAddGreedy(const uint32_t l, const uint32_t t) const;
+	Candidate tryAddGreedy(const uint32_t l, const uint32_t t) const;
 
 	const uint32_t* getCitiesSorted(const uint32_t l) const;
 
 
 	// Returns location and type
-	std::pair<uint32_t, uint32_t> findBestAddition() const;
+	Candidate findBestAddition() const;
 
-	void applyAction(const uint32_t l, const uint32_t t);
+	void applyAction(Candidate bestAction);
 };
 
