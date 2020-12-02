@@ -1,13 +1,5 @@
-import numpy as np
 
-nLocations=100
-nCities=170
-nTypes=10
 
-d_center=1.1
-
-maxX=100
-maxY=100
 
 p=np.random.randint(0,10,nCities)
 cap=np.random.randint(5,20,nTypes)
@@ -29,7 +21,7 @@ while notValid:
         notValid=False
         
 indMax = np.argmax(cap)
-locCap=[cap[indMax]]*nLocations
+locCap=[cap[indMax]]*nLocations*2
 
 startX=np.random.randint(0,maxX)
 startY=np.random.randint(0,maxY)
@@ -38,7 +30,6 @@ posLocations=[[startX,startY]]
 posCities=[]
 
 for location in range(1,nLocations):
-    print(location)
     validLoc=False
     attempts=0
     while (not validLoc):
@@ -58,8 +49,12 @@ for location in range(1,nLocations):
             attempts=0
     posLocations.append([posX,posY])
     
+for location in range(0,nLocations):
+    posX=np.random.randint(0,maxX)
+    posY=np.random.randint(0,maxY)
+    posLocations.append([posX,posY])    
+    
 for location in range(0,nCities):
-    print(location)
     validLoc=False
     attempts=0
     while (not validLoc):
@@ -96,10 +91,12 @@ for location in range(0,nCities):
                 validLoc=True
                 break
     posCities.append([posX,posY])
-             
 
+extraCap=np.random.randint(0,10)
+cap[indMax]+=extraCap
+cost[indMax]+=extraCap
 with open('output.txt', 'w') as f:
-    print("nLocations = "+str(nLocations)+";", file=f)
+    print("nLocations = "+str(nLocations*2)+";", file=f)
     print("nCities = "+str(nCities)+";", file=f)
     print("nTypes = "+str(nTypes)+";", file=f)
     stringP="["
