@@ -139,9 +139,9 @@ void LocalSearchModel::updateHeuristicCity(uint32_t city)
 	float newH = 0.0f;
 
 	if (mCityCenterAssignment[city].first == NOT_ASSIGNED) {
-		newH += SQ(mMaxPop10 - pop + 2, 300);
+		newH += SQ(pop + 2, 300);
 	}
-	else if(false){
+	else {
 		// if not compatible assignment because of distance
 		uint32_t l = mCityCenterAssignment[city].first;
 		uint32_t t = mLocationTypeAssignment[l];
@@ -150,10 +150,11 @@ void LocalSearchModel::updateHeuristicCity(uint32_t city)
 		}
 	}
 
-	if (mCityCenterAssignment[city].second == NOT_ASSIGNED) {
-		newH += SQ(mMaxPop10 - pop + 2, 100);
+	if (mCityCenterAssignment[city].second == NOT_ASSIGNED || 
+		mCityCenterAssignment[city].first == mCityCenterAssignment[city].second) {
+		newH += SQ(pop + 2, 100);
 	}
-	else if(false){
+	else {
 		// if not compatible assignment because of distance
 		uint32_t l = mCityCenterAssignment[city].second;
 		uint32_t t = mLocationTypeAssignment[l];
@@ -184,10 +185,11 @@ void LocalSearchModel::updateHeuristicLocation(uint32_t l)
 
 	if (t != NOT_ASSIGNED) {
 		if (mLocationAssignedPopulation[l] > 10 * mBaseModel.getCenterTypes()[t].maxPop) {
-			newH += SQ(mLocationAssignedPopulation[l] / mBaseModel.getCenterTypes()[t].maxPop, 1.0f);
+			const uint32_t m = std::max(3u, mLocationAssignedPopulation[l] - mBaseModel.getCenterTypes()[t].maxPop);
+			newH += SQ(m, 2);
 		}
 		else {
-			newH += mLocationAssignedPopulation[l] / mBaseModel.getCenterTypes()[t].maxPop / 10;
+			newH += mLocationAssignedPopulation[l] / mBaseModel.getCenterTypes()[t].maxPop;
 		}
 	}
 
@@ -304,7 +306,6 @@ void LocalSearchModel::localSearchAssignments()
 						doFixedCentersOp(opCopy);
 						updateOp();
 						doFixedCentersOp(opCopy);
-						assert(std::abs(ac - mActualAssignmentHeuristic) <= 1e-3);
 					}
 					assert(op.location == l);
 					assert(op.city == c);
@@ -315,7 +316,6 @@ void LocalSearchModel::localSearchAssignments()
 						doFixedCentersOp(opCopy);
 						updateOp();
 						doFixedCentersOp(opCopy);
-						assert(std::abs(ac - mActualAssignmentHeuristic) <= 1e-3);
 					}
 					assert(op.location == l);
 					assert(op.city == c);
@@ -376,7 +376,6 @@ void LocalSearchModel::localSearchAssignments()
 				bestOp.op != OperationAssignments::Op::eSetSecondary) {
 				//updateHeuristicCity(bestOp.city2);
 			}
-			assert(std::abs(bestH - mActualAssignmentHeuristic) <= 1e-3);
 			mActualAssignmentHeuristic = bestH;
 		}
 
