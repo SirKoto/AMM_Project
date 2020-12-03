@@ -61,11 +61,12 @@ IModel LocalSearchModel::run(const IModel* model)
 
 		if (improvement) {
 			lM.doLocationsOp(bestOp);
+			std::cout << "\rH: " << lM.mGenericHeuristic << std::flush;
 		}
 
 	}
 
-	std::cout << "Num iterations " << it << std::endl;
+	std::cout << "\nNum iterations " << it << std::endl;
 	return IModel(&lM);
 }
 
@@ -104,11 +105,31 @@ void LocalSearchModel::resetCenters()
 	std::memset(mLocationAssignedPopulation.data(), 0, mNumLocations * sizeof(uint32_t));
 
 	mActualAssignmentHeuristic = 0.0f;
-	// unnassign everything
+	
+	uint32_t c = 0;
 	for (std::pair<uint32_t, uint32_t>& it : mCityCenterAssignment)
 	{
-		it.first = NOT_ASSIGNED;
-		it.second = NOT_ASSIGNED;
+		//it.first = NOT_ASSIGNED;
+		//it.second = NOT_ASSIGNED;
+		// Update centers and delete if location is empty
+		if (it.first != NOT_ASSIGNED) {
+			if (mLocationTypeAssignment[it.first] != NOT_ASSIGNED) {
+				mLocationAssignedPopulation[it.first] += 10 * mBaseModel.getCities()[c].population;
+			}
+			else {
+				it.first = NOT_ASSIGNED;
+			}
+		}
+		if (it.second != NOT_ASSIGNED) {
+			if (mLocationTypeAssignment[it.second] != NOT_ASSIGNED) {
+				mLocationAssignedPopulation[it.second] += mBaseModel.getCities()[c].population;
+			}
+			else {
+				it.second = NOT_ASSIGNED;
+			}
+		}
+
+		c += 1;
 	}
 }
 
