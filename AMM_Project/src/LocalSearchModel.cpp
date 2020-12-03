@@ -5,17 +5,76 @@
 #include <iostream>
 #include <map>
 
-LocalSearchModel::LocalSearchModel(const Model& model) : 
+IModel LocalSearchModel::run(const IModel* model)
+{
+	LocalSearchModel lM(model);
+
+	bool improvement = true;
+	OperationCenters bestOp;
+	float bestH = std::numeric_limits<float>::infinity();
+
+	auto updateH = [&](const OperationCenters& op, const float& h)
+	{
+		if (h < bestH)
+		{
+			bestH = h;
+			bestOp = op;
+			improvement = true;
+		}
+	};
+
+	lM.generalUpdate();
+	bestH = lM.mGenericHeuristic;
+
+	uint32_t it = 0;
+
+	OperationCenters op, opComp;
+	while (improvement && it < 1000) {
+		improvement = false;
+		op.op = OperationCenters::Op::eSet;
+		for (uint32_t l = 0; l < lM.mNumLocations; ++l) {
+			op.location = l;
+			for(uint32_t t = 0; t < lM.mNumTypes; ++t) {
+				op.type = t;
+				opComp = lM.doLocationsOp(op);
+				lM.generalUpdate();
+				updateH(op, lM.mGenericHeuristic);
+				lM.doLocationsOp(opComp);
+			}
+			op.type = NOT_ASSIGNED;
+			opComp = lM.doLocationsOp(op);
+			lM.generalUpdate();
+			updateH(op, lM.mGenericHeuristic);
+			lM.doLocationsOp(opComp);
+		}
+		op.op = OperationCenters::Op::eSwap;
+		for (uint32_t l = 0; l < lM.mNumLocations; ++l) {
+			op.location = l;
+			for (uint32_t l2 = l + 1; l2 < lM.mNumLocations; ++l2) {
+				op.location2 = l2;
+				lM.doLocationsOp(op);
+				lM.generalUpdate();
+				updateH(op, lM.mGenericHeuristic);
+				lM.doLocationsOp(op);
+			}
+		}
+
+		if (improvement) {
+			lM.doLocationsOp(bestOp);
+		}
+
+	}
+
+	std::cout << "Num iterations " << it << std::endl;
+	return IModel(&lM);
+}
+
+LocalSearchModel::LocalSearchModel(const Model& model) :
 	IModel(model), 
 	mCityHeuristicBuffer(model.getCities().size(), 0.0f),
 	mLocationAssignedPopulation(model.getLocations().size(), 0),
 	mLocationHeuristicBuffer(model.getLocations().size(), 0.0f)
 {
-	this->mMaxPop10 = 0;
-	for (const City& c : model.getCities())
-	{
-		mMaxPop10 = std::max(mMaxPop10, 10 * c.population);
-	}
 
 	for (std::pair<uint32_t, uint32_t>& it : mCityCenterAssignment)
 	{
@@ -30,17 +89,74 @@ LocalSearchModel::LocalSearchModel(const IModel* model) :
 	mLocationAssignedPopulation(model->mNumLocations, 0),
 	mLocationHeuristicBuffer(model->mNumLocations, 0.0f)
 {
-	this->mMaxPop10 = 0;
-	for (const City& c : model->mBaseModel.getCities())
-	{
-		mMaxPop10 = std::max(mMaxPop10, 10 * c.population);
-	}
 
 	for (std::pair<uint32_t, uint32_t>& it : mCityCenterAssignment)
 	{
 		it.first = NOT_ASSIGNED;
 		it.second = NOT_ASSIGNED;
 	}
+}
+
+void LocalSearchModel::resetCenters()
+{
+	std::memset(mCityHeuristicBuffer.data(), 0, mNumCities * sizeof(float));
+	std::memset(mLocationHeuristicBuffer.data(), 0, mNumLocations  * sizeof(float));
+	std::memset(mLocationAssignedPopulation.data(), 0, mNumLocations * sizeof(uint32_t));
+
+	mActualAssignmentHeuristic = 0.0f;
+	// unnassign everything
+	for (std::pair<uint32_t, uint32_t>& it : mCityCenterAssignment)
+	{
+		it.first = NOT_ASSIGNED;
+		it.second = NOT_ASSIGNED;
+	}
+}
+
+void LocalSearchModel::generalUpdate()
+{
+	resetCenters();
+	bool res = localSearchAssignments();
+	mGenericHeuristic = 0.0f;
+	if (!res) {
+		mGenericHeuristic = 10000;
+	}
+
+	if (!areAllLocationsCompatible()) {
+		uint32_t count = 0;
+		for (uint32_t l1 = 0; l1 < mNumLocations; ++l1) {
+			for (uint32_t l2 = l1 + 1; l2 < mNumLocations; ++l2) {
+				if (mLocationTypeAssignment[l1] != NOT_ASSIGNED &&
+					mLocationTypeAssignment[l2] != NOT_ASSIGNED &&
+					!isLocationPairCompatible(l1, l2)) {
+					count += 1;
+				}
+			}
+		}
+		mGenericHeuristic += 1000 * count;
+	}
+
+	mGenericHeuristic += getCentersCost();
+}
+
+LocalSearchModel::OperationCenters LocalSearchModel::doLocationsOp(OperationCenters op)
+{
+	switch (op.op)
+	{
+	case OperationCenters::Op::eSet:
+		assert(op.location != NOT_ASSIGNED);
+		std::swap(mLocationTypeAssignment[op.location], op.type);
+		break;
+	case OperationCenters::Op::eSwap:
+		assert(op.location != NOT_ASSIGNED);
+		assert(op.location2 != NOT_ASSIGNED);
+		std::swap(mLocationTypeAssignment[op.location], mLocationTypeAssignment[op.location2]);
+		break;
+	default:
+		assert(false);
+		break;
+	}
+
+	return op;
 }
 
 void LocalSearchModel::doFixedCentersOp(OperationAssignments& op)
@@ -130,6 +246,7 @@ void LocalSearchModel::updateHeuristicCity(uint32_t city)
 	if (city == NOT_ASSIGNED) {
 		return;
 	}
+	//assert(mActualAssignmentHeuristic - mCityHeuristicBuffer[city] >= 0.0f);
 
 	mActualAssignmentHeuristic -= mCityHeuristicBuffer[city];
 
@@ -164,8 +281,13 @@ void LocalSearchModel::updateHeuristicCity(uint32_t city)
 		
 	}
 
+	assert(newH >= 0.0f);
+	//assert(mActualAssignmentHeuristic + newH >= 0.0f);
+
 	mCityHeuristicBuffer[city] = newH;
 	mActualAssignmentHeuristic += newH;
+
+
 #undef SQ
 }
 
@@ -196,6 +318,8 @@ void LocalSearchModel::updateHeuristicLocation(uint32_t l)
 	mLocationHeuristicBuffer[l] = newH;
 	mActualAssignmentHeuristic += newH;
 #undef SQ
+	assert(newH >= 0.0f);
+	//assert(mActualAssignmentHeuristic >= 0.0f);
 
 }
 
@@ -233,7 +357,7 @@ bool LocalSearchModel::isCityCenterAssignmentFeasible() const
 	return true;
 }
 
-bool LocalSearchModel::assertCityPopulation()
+bool LocalSearchModel::assertCityPopulation() const
 {
 	std::vector<uint32_t> centerServing(mNumLocations, 0);
 
@@ -256,7 +380,7 @@ bool LocalSearchModel::assertCityPopulation()
 	return true;
 }
 
-void LocalSearchModel::localSearchAssignments()
+bool LocalSearchModel::localSearchAssignments()
 {
 	OperationAssignments bestOp;
 
@@ -273,8 +397,8 @@ void LocalSearchModel::localSearchAssignments()
 	int32_t maxIt = limIt;
 	bool improvement = true;		
 	float bestH = std::numeric_limits<float>::infinity();
-
-	while (!isCityCenterAssignmentFeasible() && 
+	bool correctResult;
+	while (!(correctResult = isCityCenterAssignmentFeasible()) &&
 		maxIt-- && 
 		improvement)
 	{
@@ -367,9 +491,6 @@ void LocalSearchModel::localSearchAssignments()
 
 
 		if (improvement) {
-			if (mActualAssignmentHeuristic == 400.0f) {
-				std::cout << "uwu" << std::endl;
-			}
 			doFixedCentersOp(bestOp);
 			//updateHeuristicCity(bestOp.city);
 			if (bestOp.op != OperationAssignments::Op::eSetPrimary && 
@@ -381,6 +502,7 @@ void LocalSearchModel::localSearchAssignments()
 
 	}
 
-	std::cout << "Num it: " << limIt - maxIt << ", still improving: " << improvement << ", sat: " << isCityCenterAssignmentFeasible() << std::endl;
+	//std::cout << "Num it: " << limIt - maxIt << ", still improving: " << improvement << ", sat: " << isCityCenterAssignmentFeasible() << std::endl;
+	return correctResult;
 #undef updateOP
 }

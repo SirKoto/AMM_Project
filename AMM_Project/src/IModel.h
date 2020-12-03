@@ -11,10 +11,13 @@ public:
 
 	float getCentersCost() const;
 
+	// Every city with different center assignment
 	bool isSolutionFast() const;
 
-	bool isSolution() const;
+	// isSolutionFast() && population constraints
+	bool isSolutionPop() const;
 
+	bool isSolution() const;
 
 protected:
 
@@ -35,6 +38,8 @@ protected:
 	std::vector<std::pair<uint32_t, uint32_t>> mCityCenterAssignment;
 
 	bool isLocationPairCompatible(const uint32_t& l1, const uint32_t& l2) const;
+
+	bool areAllLocationsCompatible() const;
 
 	bool isLocationPairCompatibleSIMD(const uint32_t& l1, const uint32_t& l2) const;
 

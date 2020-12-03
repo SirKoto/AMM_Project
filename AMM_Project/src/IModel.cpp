@@ -78,7 +78,7 @@ bool IModel::isSolutionFast() const
 	return true;
 }
 
-bool IModel::isSolution() const
+bool IModel::isSolutionPop() const
 {
 	if (!isSolutionFast()) {
 		return false;
@@ -101,12 +101,36 @@ bool IModel::isSolution() const
 	return true;
 }
 
+bool IModel::isSolution() const
+{
+	if (!isSolutionPop() || !areAllLocationsCompatible()) {
+		return false;
+	}
+
+	return true;
+}
+
 
 
 bool IModel::isLocationPairCompatible(const uint32_t& l1, const uint32_t& l2) const
 {
 
 	return mCompatibleLocations[(l1 * mNumLocations + l2)];
+}
+
+bool IModel::areAllLocationsCompatible() const
+{
+	for (uint32_t l1 = 0; l1 < mNumLocations; ++l1) {
+		for (uint32_t l2 = l1 + 1; l2 < mNumLocations; ++l2) {
+			if (mLocationTypeAssignment[l1] != NOT_ASSIGNED &&
+				mLocationTypeAssignment[l2] != NOT_ASSIGNED &&
+				!isLocationPairCompatible(l1, l2)) {
+				return false;
+			}
+		}
+	}
+
+	return true;
 }
 
 
@@ -164,8 +188,9 @@ std::ostream& operator<<(std::ostream& os, const IModel& dt)
 		}
 	}
 
+	bool isSol = dt.isSolution();
 	os << "\nResulting cost: " << dt.getCentersCost() << "\n";
-	os << "Is a solution?: " << dt.isSolution() << "\n";
+	os << "Is a solution?: " << isSol << "\n";
 	if (!dt.isSolutionFast()) {
 		uint32_t i = 0;
 		for (const std::pair<uint32_t, uint32_t >& city : dt.mCityCenterAssignment) {
@@ -179,6 +204,9 @@ std::ostream& operator<<(std::ostream& os, const IModel& dt)
 			}
 			++i;
 		}
+	}
+	else if (!isSol) {
+		os << "Pair of cities too close!!\n";
 	}
 
 	for (uint32_t l : badLocations) {

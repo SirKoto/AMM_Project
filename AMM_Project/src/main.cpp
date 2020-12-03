@@ -2,6 +2,7 @@
 
 #include "Model.h"
 #include "GreedyModel.h"
+#include "LocalSearchModel.h"
 #include <iostream>
 #include <chrono>
 
@@ -32,5 +33,12 @@ int main(int argc, char* argv[]) {
 	auto diff = end - start;
 	std::cout << pMod;
 	std::cout << std::chrono::duration <double>(diff).count() << " seconds for greedy execution" << std::endl;
+	
+	start = std::chrono::steady_clock::now();
+	IModel ls = LocalSearchModel::run(&pMod);
+	end = std::chrono::steady_clock::now();
+	std::cout << ls;
+	std::cout << std::chrono::duration <double>(diff).count() << " seconds for local search execution" << std::endl;
+
 	return 0;
 }
