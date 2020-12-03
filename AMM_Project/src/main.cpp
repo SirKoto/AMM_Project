@@ -3,6 +3,7 @@
 #include "Model.h"
 #include "GreedyModel.h"
 #include <iostream>
+#include <chrono>
 
 int main(int argc, char* argv[]) {
 
@@ -21,12 +22,14 @@ int main(int argc, char* argv[]) {
 		std::cout << "Model file loaded " << fileName << std::endl;
 	}
 
+
+	auto start = std::chrono::steady_clock::now();
 	GreedyModel pMod(modelData);
 
 	pMod.runGreedy();
-
-
+	auto end = std::chrono::steady_clock::now();
+	auto diff = end - start;
 	std::cout << pMod;
-
+	std::cout << std::chrono::duration <double>(diff).count() << " seconds for greedy execution" << std::endl;
 	return 0;
 }
