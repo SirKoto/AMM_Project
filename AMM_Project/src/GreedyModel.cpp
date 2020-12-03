@@ -62,7 +62,7 @@ void GreedyModel::runGreedy()
 	}
 }
 
-GreedyModel::Candidate GreedyModel::tryAddGreedy(const uint32_t l, const uint32_t t, std::vector<char> assignments) const
+GreedyModel::Candidate GreedyModel::tryAddGreedy(const uint32_t l, const uint32_t t, std::vector<char>& assignments) const
 {
 	if (mLocationTypeAssignment[l] != NOT_ASSIGNED || locationIsBlocked(l)) {
 		Candidate infeasible;
@@ -114,8 +114,6 @@ const uint32_t* GreedyModel::getCitiesSorted(const uint32_t l) const
 
 GreedyModel::Candidate GreedyModel::findBestAddition(std::vector<Candidate> bestCandidates, uint32_t perThread, int processor_count) const
 {
-	    
-
     #pragma omp parallel num_threads(processor_count)
     {
         const int c = omp_get_thread_num(); 
@@ -141,11 +139,11 @@ GreedyModel::Candidate GreedyModel::findBestAddition(std::vector<Candidate> best
 			bestPos = i;
 		}
 	}
-    return bestCandidates[bestPos];
+    return std::move(bestCandidates[bestPos]);
 }
 
 
-void GreedyModel::applyAction(Candidate bestActions)
+void GreedyModel::applyAction(const Candidate& bestActions)
 {
 
 	const uint32_t* ptr = getCitiesSorted(bestActions.loc);
