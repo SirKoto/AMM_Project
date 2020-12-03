@@ -16,6 +16,7 @@ int main(int argc, char* argv[]) {
 	if (!read)
 	{
 		std::cout << "Cannot read file " << fileName << std::endl;
+		exit(1);
 	}
 	else
 	{

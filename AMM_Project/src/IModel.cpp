@@ -71,6 +71,9 @@ bool IModel::isSolutionFast() const
 		if (city.first == NOT_ASSIGNED || city.second == NOT_ASSIGNED) {
 			return false;
 		}
+		if (city.first == city.second) {
+			return false;
+		}
 	}
 	return true;
 }
@@ -168,6 +171,10 @@ std::ostream& operator<<(std::ostream& os, const IModel& dt)
 		for (const std::pair<uint32_t, uint32_t >& city : dt.mCityCenterAssignment) {
 			if (city.first == dt.NOT_ASSIGNED || city.second == dt.NOT_ASSIGNED) {
 				os << "City " << i << " is missing " << (city.first == dt.NOT_ASSIGNED ? "first " : "") << (city.second == dt.NOT_ASSIGNED ? "second" : "") << "\n";
+
+			}
+			else if (city.first == city.second) {
+				os << "City " << i << " has the same primary and secondary center " << city.first << "\n";
 
 			}
 			++i;
