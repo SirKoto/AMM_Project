@@ -81,15 +81,15 @@ bool IModel::isSolution() const
 		return false;
 	}
 
-	std::vector<float> popSum(mNumLocations, 0.0f);
+	std::vector<uint32_t> popSum(mNumLocations, 0);
 	for (uint32_t c = 0; c < mNumCities; ++c) {
-		popSum[mCityCenterAssignment[c].first] += mBaseModel.getCities()[c].population;
-		popSum[mCityCenterAssignment[c].second] += 0.1f * mBaseModel.getCities()[c].population;
+		popSum[mCityCenterAssignment[c].first] += 10 * mBaseModel.getCities()[c].population;
+		popSum[mCityCenterAssignment[c].second] += mBaseModel.getCities()[c].population;
 	}
 
 	for (uint32_t l = 0; l < mNumLocations; ++l) {
 		if (mLocationTypeAssignment[l] != NOT_ASSIGNED) {
-			if (popSum[l] > mBaseModel.getCenterTypes()[mLocationTypeAssignment[l]].maxPop + 1e-4) {
+			if (popSum[l] > 10 * mBaseModel.getCenterTypes()[mLocationTypeAssignment[l]].maxPop) {
 				return false;
 			}
 		}
@@ -155,7 +155,7 @@ std::ostream& operator<<(std::ostream& os, const IModel& dt)
 			os << "Location " << i << " assigned with center type " << dt.mLocationTypeAssignment[i] << "\n";
 			os << "\tServing to " << centerServing.at(i) << "/" << dt.mBaseModel.getCenterTypes()[dt.mLocationTypeAssignment[i]].maxPop << " population\n";
 
-			if (centerServing.at(i) > dt.mBaseModel.getCenterTypes()[dt.mLocationTypeAssignment[i]].maxPop +1e-4) {
+			if (centerServing.at(i) > dt.mBaseModel.getCenterTypes()[dt.mLocationTypeAssignment[i]].maxPop + 1e-4) {
 				badLocations.push_back(i);
 			}
 		}

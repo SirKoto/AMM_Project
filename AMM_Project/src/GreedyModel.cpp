@@ -51,7 +51,7 @@ void GreedyModel::runGreedy()
 	std::vector<Candidate> bestCandidates(processor_count);
 
 	while (!isSolutionFast()) {
-		Candidate bestAction = findBestAddition(bestCandidates,perThread,processor_count);
+		Candidate bestAction = findBestAddition(bestCandidates, perThread, processor_count);
 		if (bestAction.fit<0) break;
 		applyAction(bestAction);
 		float n = numToAssign();
@@ -71,8 +71,8 @@ GreedyModel::Candidate GreedyModel::tryAddGreedy(const uint32_t l, const uint32_
 	}
 	std::fill(assignments.begin(), assignments.end(), 0);
 	uint32_t num = 0;
-	float pop = 0.0f;
-	const float maxPop = mBaseModel.getCenterTypes()[t].maxPop;
+	uint32_t pop = 0;
+	const uint32_t maxPop = 10 * mBaseModel.getCenterTypes()[t].maxPop;
 	const uint32_t* ptr = getCitiesSorted(l);
 
 	Candidate bestCandidate;
@@ -80,7 +80,7 @@ GreedyModel::Candidate GreedyModel::tryAddGreedy(const uint32_t l, const uint32_
 	for (ci = 0; ci < mNumCities; ++ci) {
 		uint32_t c = *(ptr + ci);
 		if (mCityCenterAssignment[c].first == NOT_ASSIGNED && isCityLocationTypeCompatible(c, l, t, 0)) {
-			float newPop = pop + mBaseModel.getCities()[c].population;
+			uint32_t newPop = pop + 10 * mBaseModel.getCities()[c].population;
 			if (newPop > maxPop) {
 				break;
 			}
@@ -88,7 +88,7 @@ GreedyModel::Candidate GreedyModel::tryAddGreedy(const uint32_t l, const uint32_
 			pop = newPop;
 		}
 		else if (mCityCenterAssignment[c].second == NOT_ASSIGNED && isCityLocationTypeCompatible(c, l, t, 1)) {
-			float newPop = pop + 0.1f * mBaseModel.getCities()[c].population;
+			uint32_t newPop = pop + mBaseModel.getCities()[c].population;
 			if (newPop > maxPop) {
 				break;
 			}
@@ -100,7 +100,7 @@ GreedyModel::Candidate GreedyModel::tryAddGreedy(const uint32_t l, const uint32_
 		}
 	}
 	if (ci < mNumCities) assignments[ci + (uint32_t) 1] = 3;
-	bestCandidate.fit = pop / mBaseModel.getCenterTypes()[t].cost;
+	bestCandidate.fit = static_cast<float>(pop) * 0.1f / mBaseModel.getCenterTypes()[t].cost;
 	bestCandidate.assigns = assignments;
 	bestCandidate.type = t;
 	bestCandidate.loc = l;

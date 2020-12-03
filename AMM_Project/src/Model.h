@@ -19,14 +19,14 @@ typedef struct vec2
 
 typedef struct City
 {
-	float population;
+	uint32_t population;
 	vec cityPos;
 } City;
 
 typedef struct CenterType
 {
 	float serveDist;
-	float maxPop;
+	uint32_t maxPop;
 	float cost;
 
 } CenterType, Type;

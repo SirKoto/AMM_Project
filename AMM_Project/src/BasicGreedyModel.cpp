@@ -67,21 +67,21 @@ float BasicGreedyModel::tryAddGreedy(const uint32_t l, const uint32_t t) const
 	}
 
 	uint32_t num = 0;
-	float pop = 0.0f;
-	const float maxPop = mBaseModel.getCenterTypes()[t].maxPop;
+	uint32_t pop = 0;
+	const uint32_t maxPop = 10 * mBaseModel.getCenterTypes()[t].maxPop;
 	const uint32_t* ptr = getCitiesSorted(l);
 	for (uint32_t ci = 0; ci < mNumCities; ++ci) {
 		uint32_t c = *(ptr + ci);
 		if (mCityCenterAssignment[c].first == NOT_ASSIGNED && isCityLocationTypeCompatible(c, l, t, 0)) {
 
-			float newPop = pop + mBaseModel.getCities()[c].population;
+			uint32_t newPop = pop + 10 * mBaseModel.getCities()[c].population;
 			if (newPop > maxPop) {
 				break;
 			}
 			pop = newPop;
 		}
 		else if (mCityCenterAssignment[c].second == NOT_ASSIGNED && isCityLocationTypeCompatible(c, l, t, 1)) {
-			float newPop = pop + 0.1f * mBaseModel.getCities()[c].population;
+			uint32_t newPop = pop + mBaseModel.getCities()[c].population;
 			if (newPop > maxPop) {
 				break;
 			}
@@ -89,7 +89,7 @@ float BasicGreedyModel::tryAddGreedy(const uint32_t l, const uint32_t t) const
 		}
 	}
 
-	return mBaseModel.getCenterTypes()[t].cost / pop;
+	return mBaseModel.getCenterTypes()[t].cost / static_cast<float>(pop) * 10.0f;
 }
 
 const uint32_t* BasicGreedyModel::getCitiesSorted(const uint32_t l) const
@@ -119,22 +119,22 @@ std::pair<uint32_t, uint32_t> BasicGreedyModel::findBestAddition() const
 
 void BasicGreedyModel::applyAction(const uint32_t l, const uint32_t t)
 {
-	float pop = 0.0f;
-	const float maxPop = mBaseModel.getCenterTypes()[t].maxPop;
+	uint32_t pop = 0;
+	const uint32_t maxPop = 10 * mBaseModel.getCenterTypes()[t].maxPop;
 
 	const uint32_t* ptr = getCitiesSorted(l);
 	for (uint32_t ci = 0; ci < mNumCities; ++ci) {
 		uint32_t c = *(ptr + ci);
 		if (mCityCenterAssignment[c].first == NOT_ASSIGNED && isCityLocationTypeCompatible(c, l, t, 0)) {
 
-			float newPop = pop + mBaseModel.getCities()[c].population;
+			uint32_t newPop = pop + 10 * mBaseModel.getCities()[c].population;
 			if (newPop <= maxPop) {
 				pop = newPop;
 				mCityCenterAssignment[c].first = l;
 			}
 		}
 		else if (mCityCenterAssignment[c].second == NOT_ASSIGNED && isCityLocationTypeCompatible(c, l, t, 1)) {
-			float newPop = pop + 0.1f * mBaseModel.getCities()[c].population;
+			uint32_t newPop = pop + mBaseModel.getCities()[c].population;
 			if (newPop <= maxPop) {
 				pop = newPop;
 				mCityCenterAssignment[c].second = l;
