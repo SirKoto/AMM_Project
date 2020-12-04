@@ -12,12 +12,9 @@ IModel::IModel(const Model& model) :
 	mCompatibleLocations.resize(mNumLocations * mNumLocations);
 	// compute location compatibility
 	for (uint32_t l1 = 0; l1 < mNumLocations; ++l1) {
-		for (uint32_t l2 = 0; l2 < mNumLocations; ++l2) {
-			bool res = true;
-			if (l1 != l2) {
-				res = model.getLocations()[l1].dist(model.getLocations()[l2]) >= model.getMinDistanceBetweenCenters();
-			}
-
+		mCompatibleLocations[(l1 * mNumLocations +l1)] = true;
+		for (uint32_t l2 = l1+1; l2 < mNumLocations; ++l2) {
+			bool res = model.getLocations()[l1].dist(model.getLocations()[l2]) >= model.getMinDistanceBetweenCenters();
 			mCompatibleLocations[(l1 * mNumLocations + l2)] = res;
 			mCompatibleLocations[(l2 * mNumLocations + l1)] = res;
 		}
@@ -103,6 +100,7 @@ bool IModel::isSolutionPop() const
 
 bool IModel::isSolution() const
 {
+
 	if (!isSolutionPop() || !areAllLocationsCompatible()) {
 		return false;
 	}
@@ -114,7 +112,6 @@ bool IModel::isSolution() const
 
 bool IModel::isLocationPairCompatible(const uint32_t& l1, const uint32_t& l2) const
 {
-
 	return mCompatibleLocations[(l1 * mNumLocations + l2)];
 }
 
@@ -148,7 +145,7 @@ bool IModel::isCityLocationTypeCompatible(
 bool IModel::locationIsBlocked(const uint32_t l) const
 {
 	for (uint32_t l2 = 0; l2 < mNumLocations; ++l2) {
-		if (mLocationTypeAssignment[l] != NOT_ASSIGNED && !isLocationPairCompatible(l, l2)) {
+		if (mLocationTypeAssignment[l2] != NOT_ASSIGNED && !isLocationPairCompatible(l, l2)) {
 			return true;
 		}
 	}

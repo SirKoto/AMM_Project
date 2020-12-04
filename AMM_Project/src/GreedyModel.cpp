@@ -99,7 +99,7 @@ GreedyModel::Candidate GreedyModel::tryAddGreedy(const uint32_t l, const uint32_
 			assignments[ci]=0;
 		}
 	}
-	if (ci < mNumCities - 1) assignments[ci + (uint32_t) 1] = 3;
+	if (ci < mNumCities - 1) assignments[ci + 1] = 3;
 	bestCandidate.fit = static_cast<float>(pop) * 0.1f / mBaseModel.getCenterTypes()[t].cost;
 	bestCandidate.assigns = assignments;
 	bestCandidate.type = t;
