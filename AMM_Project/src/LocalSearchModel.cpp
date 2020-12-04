@@ -42,30 +42,49 @@ IModel LocalSearchModel::run(const IModel* model)
 		for (uint32_t l = 0; l < lM.mNumLocations; ++l) {
 			op.location = l;
 			for(uint32_t t = 0; t < lM.mNumTypes; ++t) {
+				// if location has already this type of center, continue
+				if (lM.mLocationTypeAssignment[l] == t) {
+					continue;
+				}
+
 				op.type = t;
 				opComp = lM.doLocationsOp(op);
 				lM.generalUpdate();
 				updateH(op, lM.mGenericHeuristic);
 				lM.doLocationsOp(opComp);
-				lM.mCityCenterAssignment = cityCenterAssignmentCopy; // recover original assignment
+				std::memcpy(lM.mCityCenterAssignment.data(), // recover original assignment
+					cityCenterAssignmentCopy.data(),
+					cityCenterAssignmentCopy.size() * sizeof(cityCenterAssignmentCopy.front()));
 			}
-			op.type = NOT_ASSIGNED;
-			opComp = lM.doLocationsOp(op);
-			lM.generalUpdate();
-			updateH(op, lM.mGenericHeuristic);
-			lM.doLocationsOp(opComp);
-			lM.mCityCenterAssignment = cityCenterAssignmentCopy; // recover original assignment
+
+			if (lM.mLocationTypeAssignment[l] != NOT_ASSIGNED) {
+				op.type = NOT_ASSIGNED;
+				opComp = lM.doLocationsOp(op);
+				lM.generalUpdate();
+				updateH(op, lM.mGenericHeuristic);
+				lM.doLocationsOp(opComp);
+				std::memcpy(lM.mCityCenterAssignment.data(), // recover original assignment
+					cityCenterAssignmentCopy.data(),
+					cityCenterAssignmentCopy.size() * sizeof(cityCenterAssignmentCopy.front()));
+			}
 		}
 		op.op = OperationCenters::Op::eSwap;
 		for (uint32_t l = 0; l < lM.mNumLocations; ++l) {
 			op.location = l;
 			for (uint32_t l2 = l + 1; l2 < lM.mNumLocations; ++l2) {
+				// only do if either location has center
+				if (lM.mLocationTypeAssignment[l] == NOT_ASSIGNED && lM.mLocationTypeAssignment[2] == NOT_ASSIGNED) {
+					continue;
+				}
+
 				op.location2 = l2;
 				lM.doLocationsOp(op);
 				lM.generalUpdate();
 				updateH(op, lM.mGenericHeuristic);
 				lM.doLocationsOp(op);
-				lM.mCityCenterAssignment = cityCenterAssignmentCopy; // recover original assignment
+				std::memcpy(lM.mCityCenterAssignment.data(), // recover original assignment
+					cityCenterAssignmentCopy.data(),
+					cityCenterAssignmentCopy.size() * sizeof(cityCenterAssignmentCopy.front()));
 			}
 		}
 
