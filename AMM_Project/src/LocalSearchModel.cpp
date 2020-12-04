@@ -49,23 +49,27 @@ IModel LocalSearchModel::run(const IModel* model)
 
 				op.type = t;
 				opComp = lM.doLocationsOp(op);
-				lM.generalUpdate();
-				updateH(op, lM.mGenericHeuristic);
+				if (lM.mGenericHeuristic >= lM.getCentersCost()) {
+					lM.generalUpdate();
+					updateH(op, lM.mGenericHeuristic);
+					std::memcpy(lM.mCityCenterAssignment.data(), // recover original assignment
+						cityCenterAssignmentCopy.data(),
+						cityCenterAssignmentCopy.size() * sizeof(cityCenterAssignmentCopy.front()));
+				}
 				lM.doLocationsOp(opComp);
-				std::memcpy(lM.mCityCenterAssignment.data(), // recover original assignment
-					cityCenterAssignmentCopy.data(),
-					cityCenterAssignmentCopy.size() * sizeof(cityCenterAssignmentCopy.front()));
 			}
 
 			if (lM.mLocationTypeAssignment[l] != NOT_ASSIGNED) {
 				op.type = NOT_ASSIGNED;
 				opComp = lM.doLocationsOp(op);
-				lM.generalUpdate();
-				updateH(op, lM.mGenericHeuristic);
+				if (lM.mGenericHeuristic >= lM.getCentersCost()) {
+					lM.generalUpdate();
+					updateH(op, lM.mGenericHeuristic);
+					std::memcpy(lM.mCityCenterAssignment.data(), // recover original assignment
+						cityCenterAssignmentCopy.data(),
+						cityCenterAssignmentCopy.size() * sizeof(cityCenterAssignmentCopy.front()));
+				}
 				lM.doLocationsOp(opComp);
-				std::memcpy(lM.mCityCenterAssignment.data(), // recover original assignment
-					cityCenterAssignmentCopy.data(),
-					cityCenterAssignmentCopy.size() * sizeof(cityCenterAssignmentCopy.front()));
 			}
 		}
 		op.op = OperationCenters::Op::eSwap;
@@ -79,12 +83,15 @@ IModel LocalSearchModel::run(const IModel* model)
 
 				op.location2 = l2;
 				lM.doLocationsOp(op);
-				lM.generalUpdate();
-				updateH(op, lM.mGenericHeuristic);
+				if (lM.mGenericHeuristic >= lM.getCentersCost()) {
+					lM.generalUpdate();
+					updateH(op, lM.mGenericHeuristic);
+					std::memcpy(lM.mCityCenterAssignment.data(), // recover original assignment
+						cityCenterAssignmentCopy.data(),
+						cityCenterAssignmentCopy.size() * sizeof(cityCenterAssignmentCopy.front()));
+				}
 				lM.doLocationsOp(op);
-				std::memcpy(lM.mCityCenterAssignment.data(), // recover original assignment
-					cityCenterAssignmentCopy.data(),
-					cityCenterAssignmentCopy.size() * sizeof(cityCenterAssignmentCopy.front()));
+				
 			}
 		}
 
