@@ -145,6 +145,7 @@
   <ItemGroup>
     <ClCompile Include="src\BasicGreedyModel.cpp" />
     <ClCompile Include="src\GreedyModel.cpp" />
+    <ClCompile Include="src\LocalSearchModel.cpp" />
     <ClCompile Include="src\main.cpp" />
     <ClCompile Include="src\Model.cpp" />
     <ClCompile Include="src\IModel.cpp" />
@@ -152,6 +153,7 @@
   <ItemGroup>
     <ClInclude Include="src\BasicGreedyModel.h" />
     <ClInclude Include="src\GreedyModel.h" />
+    <ClInclude Include="src\LocalSearchModel.h" />
     <ClInclude Include="src\Model.h" />
     <ClInclude Include="src\IModel.h" />
   </ItemGroup>

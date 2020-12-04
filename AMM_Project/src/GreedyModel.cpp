@@ -50,8 +50,8 @@ void GreedyModel::runGreedy()
 	if (perThread < 1) perThread = 1;
 	std::vector<Candidate> bestCandidates(processor_count);
 
-	while (!isSolution()) {
-		Candidate bestAction = findBestAddition(bestCandidates,perThread,processor_count);
+	while (!isSolutionFast()) {
+		Candidate bestAction = findBestAddition(bestCandidates, perThread, processor_count);
 		if (bestAction.fit<0) break;
 		applyAction(bestAction);
 		float n = numToAssign();
@@ -62,7 +62,7 @@ void GreedyModel::runGreedy()
 	}
 }
 
-GreedyModel::Candidate GreedyModel::tryAddGreedy(const uint32_t l, const uint32_t t, std::vector<char> assignments) const
+GreedyModel::Candidate GreedyModel::tryAddGreedy(const uint32_t l, const uint32_t t, std::vector<char>& assignments) const
 {
 	if (mLocationTypeAssignment[l] != NOT_ASSIGNED || locationIsBlocked(l)) {
 		Candidate infeasible;
@@ -71,8 +71,8 @@ GreedyModel::Candidate GreedyModel::tryAddGreedy(const uint32_t l, const uint32_
 	}
 	std::fill(assignments.begin(), assignments.end(), 0);
 	uint32_t num = 0;
-	float pop = 0.0f;
-	const float maxPop = mBaseModel.getCenterTypes()[t].maxPop;
+	uint32_t pop = 0;
+	const uint32_t maxPop = 10 * mBaseModel.getCenterTypes()[t].maxPop;
 	const uint32_t* ptr = getCitiesSorted(l);
 
 	Candidate bestCandidate;
@@ -80,7 +80,7 @@ GreedyModel::Candidate GreedyModel::tryAddGreedy(const uint32_t l, const uint32_
 	for (ci = 0; ci < mNumCities; ++ci) {
 		uint32_t c = *(ptr + ci);
 		if (mCityCenterAssignment[c].first == NOT_ASSIGNED && isCityLocationTypeCompatible(c, l, t, 0)) {
-			float newPop = pop + mBaseModel.getCities()[c].population;
+			uint32_t newPop = pop + 10 * mBaseModel.getCities()[c].population;
 			if (newPop > maxPop) {
 				break;
 			}
@@ -88,7 +88,7 @@ GreedyModel::Candidate GreedyModel::tryAddGreedy(const uint32_t l, const uint32_
 			pop = newPop;
 		}
 		else if (mCityCenterAssignment[c].second == NOT_ASSIGNED && isCityLocationTypeCompatible(c, l, t, 1)) {
-			float newPop = pop + 0.1f * mBaseModel.getCities()[c].population;
+			uint32_t newPop = pop + mBaseModel.getCities()[c].population;
 			if (newPop > maxPop) {
 				break;
 			}
@@ -99,8 +99,8 @@ GreedyModel::Candidate GreedyModel::tryAddGreedy(const uint32_t l, const uint32_
 			assignments[ci]=0;
 		}
 	}
-	if (ci < mNumCities) assignments[ci + (uint32_t) 1] = 3;
-	bestCandidate.fit = pop / mBaseModel.getCenterTypes()[t].cost;
+	if (ci < mNumCities - 1) assignments[ci + (uint32_t) 1] = 3;
+	bestCandidate.fit = static_cast<float>(pop) * 0.1f / mBaseModel.getCenterTypes()[t].cost;
 	bestCandidate.assigns = assignments;
 	bestCandidate.type = t;
 	bestCandidate.loc = l;
@@ -112,10 +112,8 @@ const uint32_t* GreedyModel::getCitiesSorted(const uint32_t l) const
 	return mSortedCities.data() + l * mNumCities;
 }
 
-GreedyModel::Candidate GreedyModel::findBestAddition(std::vector<Candidate> bestCandidates,int perThread, int processor_count) const
+GreedyModel::Candidate GreedyModel::findBestAddition(std::vector<Candidate> bestCandidates, uint32_t perThread, int processor_count) const
 {
-	    
-
     #pragma omp parallel num_threads(processor_count)
     {
         const int c = omp_get_thread_num(); 
@@ -141,11 +139,11 @@ GreedyModel::Candidate GreedyModel::findBestAddition(std::vector<Candidate> best
 			bestPos = i;
 		}
 	}
-    return bestCandidates[bestPos];
+    return std::move(bestCandidates[bestPos]);
 }
 
 
-void GreedyModel::applyAction(Candidate bestActions)
+void GreedyModel::applyAction(const Candidate& bestActions)
 {
 	mLocationTypeAssignment[bestActions.loc] = bestActions.type;
 	const uint32_t* ptr = getCitiesSorted(bestActions.loc);

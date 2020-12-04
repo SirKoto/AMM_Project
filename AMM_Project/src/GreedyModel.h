@@ -28,14 +28,14 @@ protected:
 	// array of num cities * num locations, 
 	std::vector<uint32_t> mSortedCities;
 
-	Candidate tryAddGreedy(const uint32_t l, const uint32_t t, std::vector<char> assignments) const;
+	Candidate tryAddGreedy(const uint32_t l, const uint32_t t, std::vector<char>& assignments) const;
 
 	const uint32_t* getCitiesSorted(const uint32_t l) const;
 
 
 	// Returns location and type
-	Candidate findBestAddition(std::vector<Candidate> bestCandidates, int perThread, int processor_count) const;
+	Candidate findBestAddition(std::vector<Candidate> bestCandidates, uint32_t perThread, int processor_count) const;
 
-	void applyAction(Candidate bestAction);
+	void applyAction(const Candidate& bestAction);
 };
 
