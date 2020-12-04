@@ -23,13 +23,20 @@ IModel LocalSearchModel::run(const IModel* model)
 		}
 	};
 
+	// first update to set up everything
 	lM.generalUpdate();
+	std::vector<std::pair<uint32_t, uint32_t>> cityCenterAssignmentCopy(lM.mCityCenterAssignment.size()); 
+
 	bestH = lM.mGenericHeuristic;
 
 	uint32_t it = 0;
 
 	OperationCenters op, opComp;
-	while (improvement && it < 1000) {
+	while (improvement && it++ < 1000) {
+
+		// store copy of the system at this moment
+		cityCenterAssignmentCopy = lM.mCityCenterAssignment;
+
 		improvement = false;
 		op.op = OperationCenters::Op::eSet;
 		for (uint32_t l = 0; l < lM.mNumLocations; ++l) {
@@ -40,12 +47,14 @@ IModel LocalSearchModel::run(const IModel* model)
 				lM.generalUpdate();
 				updateH(op, lM.mGenericHeuristic);
 				lM.doLocationsOp(opComp);
+				lM.mCityCenterAssignment = cityCenterAssignmentCopy; // recover original assignment
 			}
 			op.type = NOT_ASSIGNED;
 			opComp = lM.doLocationsOp(op);
 			lM.generalUpdate();
 			updateH(op, lM.mGenericHeuristic);
 			lM.doLocationsOp(opComp);
+			lM.mCityCenterAssignment = cityCenterAssignmentCopy; // recover original assignment
 		}
 		op.op = OperationCenters::Op::eSwap;
 		for (uint32_t l = 0; l < lM.mNumLocations; ++l) {
@@ -56,11 +65,13 @@ IModel LocalSearchModel::run(const IModel* model)
 				lM.generalUpdate();
 				updateH(op, lM.mGenericHeuristic);
 				lM.doLocationsOp(op);
+				lM.mCityCenterAssignment = cityCenterAssignmentCopy; // recover original assignment
 			}
 		}
 
 		if (improvement) {
 			lM.doLocationsOp(bestOp);
+			lM.generalUpdate();
 			std::cout << "\rH: " << lM.mGenericHeuristic << std::flush;
 		}
 
