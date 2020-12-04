@@ -1,5 +1,14 @@
 
+import numpy as np
+import sys
+nLocations=300
+nCities=460
+nTypes=4
 
+d_center=1.1
+
+maxX=100
+maxY=100
 
 p=np.random.randint(0,10,nCities)
 cap=np.random.randint(5,20,nTypes)

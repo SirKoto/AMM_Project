@@ -145,7 +145,7 @@ GreedyModel::Candidate GreedyModel::findBestAddition(std::vector<Candidate> best
 
 void GreedyModel::applyAction(const Candidate& bestActions)
 {
-
+	mLocationTypeAssignment[bestActions.loc] = bestActions.type;
 	const uint32_t* ptr = getCitiesSorted(bestActions.loc);
 	for (uint32_t ci=0;ci<mNumCities;++ci) {
 		uint32_t c = *(ptr + ci);
@@ -155,8 +155,7 @@ void GreedyModel::applyAction(const Candidate& bestActions)
 		else if (bestActions.assigns[ci] == 2) {
 			mCityCenterAssignment[c].second = bestActions.loc;
 		}
-		else if (bestActions.assigns[ci] == 3) break;
+		else if (bestActions.assigns[ci] == 3) return;
 	}
-	mLocationTypeAssignment[bestActions.loc] = bestActions.type;
 }
 

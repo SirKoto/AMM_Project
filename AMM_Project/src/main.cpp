@@ -12,6 +12,7 @@ int main(int argc, char* argv[]) {
 
 	//std::string fileName = "data/project.2.dat";
 	std::string fileName = "data/output.txt";
+	auto start = std::chrono::steady_clock::now();
 
 	bool read = modelData.readFromFile(fileName);
 	if (!read)
@@ -25,7 +26,6 @@ int main(int argc, char* argv[]) {
 	}
 
 
-	auto start = std::chrono::steady_clock::now();
 	GreedyModel pMod(modelData);
 
 	pMod.runGreedy();
