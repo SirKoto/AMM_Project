@@ -72,7 +72,8 @@ IModel LocalSearchModel::run(const IModel* model)
 		if (improvement) {
 			lM.doLocationsOp(bestOp);
 			lM.generalUpdate();
-			std::cout << "\rH: " << lM.mGenericHeuristic << std::flush;
+			std::cout << "\r                                       \rH: " 
+				<< lM.mGenericHeuristic << std::flush;
 		}
 
 	}

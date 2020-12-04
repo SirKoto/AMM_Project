@@ -32,11 +32,12 @@ int main(int argc, char* argv[]) {
 	auto end = std::chrono::steady_clock::now();
 	auto diff = end - start;
 	std::cout << pMod;
-	std::cout << std::chrono::duration <double>(diff).count() << " seconds for greedy execution" << std::endl;
+	std::cout << std::chrono::duration<double>(diff).count() << " seconds for greedy execution" << std::endl;
 	
 	start = std::chrono::steady_clock::now();
 	IModel ls = LocalSearchModel::run(&pMod);
 	end = std::chrono::steady_clock::now();
+	diff = end - start;
 	std::cout << ls;
 	std::cout << std::chrono::duration <double>(diff).count() << " seconds for local search execution" << std::endl;
 
