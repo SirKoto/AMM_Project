@@ -7,6 +7,9 @@ class LocalSearchModel :
 public:
 
     static IModel run(const IModel* model);
+    static IModel runParallel(const IModel* model);
+
+
 
 protected:
 

@@ -4,6 +4,8 @@
 #include <algorithm>
 #include <iostream>
 #include <map>
+#include <thread>
+#include <omp.h>
 
 IModel LocalSearchModel::run(const IModel* model)
 {
@@ -77,7 +79,7 @@ IModel LocalSearchModel::run(const IModel* model)
 			op.location = l;
 			for (uint32_t l2 = l + 1; l2 < lM.mNumLocations; ++l2) {
 				// only do if either location has center
-				if (lM.mLocationTypeAssignment[l] == NOT_ASSIGNED && lM.mLocationTypeAssignment[2] == NOT_ASSIGNED) {
+				if (lM.mLocationTypeAssignment[l] == NOT_ASSIGNED && lM.mLocationTypeAssignment[l2] == NOT_ASSIGNED) {
 					continue;
 				}
 
@@ -106,6 +108,176 @@ IModel LocalSearchModel::run(const IModel* model)
 
 	std::cout << "\nNum iterations " << it << std::endl;
 	return IModel(&lM);
+}
+
+IModel LocalSearchModel::runParallel(const IModel* model)
+{
+	struct Thread_data
+	{
+		LocalSearchModel lM;
+		bool improvement = false;
+		OperationCenters bestOp;
+		float bestH = std::numeric_limits<float>::infinity();
+
+		Thread_data(const IModel* model) : lM(model) {}
+	};
+	const uint32_t numT = 2;// std::thread::hardware_concurrency();
+	std::vector<Thread_data> t_data(numT, model);
+
+	auto updateH = [](Thread_data& data, const OperationCenters& op, const float& h)
+	{
+		if (h < data.bestH)
+		{
+			data.bestH = h;
+			data.bestOp = op;
+			data.improvement = true;
+		}
+	};
+
+	const uint32_t numLocations = model->mNumLocations;
+	const uint32_t numTypes = model->mNumTypes;
+
+	// first update to set up everything
+	t_data.front().lM.generalUpdate();
+	t_data.front().improvement = true;
+
+	std::vector<std::pair<uint32_t, uint32_t>> cityCenterAssignmentCopy(t_data.front().lM.mCityCenterAssignment.size());
+
+	uint32_t it = 0;
+	{
+		// store copy of the system at this moment
+		cityCenterAssignmentCopy = t_data.front().lM.mCityCenterAssignment;
+		it += 1;
+		t_data.front().improvement = false;
+		for (size_t i = 1; i < t_data.size(); ++i) {
+			t_data[i].improvement = false;
+			t_data[i].lM.mGenericHeuristic = t_data.front().lM.mGenericHeuristic;
+			t_data[i].bestH = t_data.front().lM.mGenericHeuristic;
+			std::memcpy(t_data[i].lM.mCityCenterAssignment.data(), // recover assignment
+				cityCenterAssignmentCopy.data(),
+				cityCenterAssignmentCopy.size() * sizeof(cityCenterAssignmentCopy.front()));
+		}
+	}
+
+	bool keepGoing = true;
+
+	OperationCenters op, opComp; 
+#pragma omp parallel num_threads(numT)
+	while (keepGoing && it < 1000) {
+		
+#pragma omp for private(op) schedule(dynamic, numLocations/numT/20)
+		for (int32_t l = 0; l < static_cast<const int32_t>(numLocations); ++l) {
+			op.op = OperationCenters::Op::eSet;
+			op.location = l;
+			Thread_data& dat = t_data[omp_get_thread_num()];
+			for (uint32_t t = 0; t < numTypes; ++t) {
+				// if location has already this type of center, continue
+				if (dat.lM.mLocationTypeAssignment[l] == t) {
+					continue;
+				}
+
+				op.type = t;
+				opComp = dat.lM.doLocationsOp(op);
+				if (dat.lM.mGenericHeuristic >= dat.lM.getCentersCost()) {
+					dat.lM.generalUpdate();
+					updateH(dat, op, dat.lM.mGenericHeuristic);
+					std::memcpy(dat.lM.mCityCenterAssignment.data(), // recover original assignment
+						cityCenterAssignmentCopy.data(),
+						cityCenterAssignmentCopy.size() * sizeof(cityCenterAssignmentCopy.front()));
+				}
+				dat.lM.doLocationsOp(opComp);
+			}
+
+			if (dat.lM.mLocationTypeAssignment[l] != NOT_ASSIGNED) {
+				op.type = NOT_ASSIGNED;
+				opComp = dat.lM.doLocationsOp(op);
+				if (dat.lM.mGenericHeuristic >= dat.lM.getCentersCost()) {
+					dat.lM.generalUpdate();
+					updateH(dat, op, dat.lM.mGenericHeuristic);
+					std::memcpy(dat.lM.mCityCenterAssignment.data(), // recover original assignment
+						cityCenterAssignmentCopy.data(),
+						cityCenterAssignmentCopy.size() * sizeof(cityCenterAssignmentCopy.front()));
+				}
+				dat.lM.doLocationsOp(opComp);
+			}
+		}
+
+#pragma omp for firstprivate(op) schedule(dynamic, numLocations/numT/20)
+		for (int32_t l = 0; l < static_cast<const int32_t>(numLocations); ++l) {
+			op.op = OperationCenters::Op::eSwap;
+			op.location = l;
+			Thread_data& dat = t_data[omp_get_thread_num()];
+			for (uint32_t l2 = l + 1; l2 < numLocations; ++l2) {
+				// only do if either location has center
+				if (dat.lM.mLocationTypeAssignment[l] == NOT_ASSIGNED && dat.lM.mLocationTypeAssignment[l2] == NOT_ASSIGNED) {
+					continue;
+				}
+
+				op.location2 = l2;
+				dat.lM.doLocationsOp(op);
+				if (dat.lM.mGenericHeuristic >= dat.lM.getCentersCost()) {
+					dat.lM.generalUpdate();
+					updateH(dat, op, dat.lM.mGenericHeuristic);
+					std::memcpy(dat.lM.mCityCenterAssignment.data(), // recover original assignment
+						cityCenterAssignmentCopy.data(),
+						cityCenterAssignmentCopy.size() * sizeof(cityCenterAssignmentCopy.front()));
+				}
+				dat.lM.doLocationsOp(op);
+
+			}
+		}
+
+		// Put all improvements into the first element
+#pragma omp single
+		{
+			for (size_t i = 1; i < t_data.size(); ++i) {
+				if (t_data[i].improvement) {
+					if (!t_data.front().improvement) {
+						t_data.front().improvement = true;
+						t_data.front().bestH = t_data[i].bestH;
+						t_data.front().bestOp = t_data[i].bestOp;
+					}
+					else {
+						if (t_data.front().bestH > t_data[i].bestH) {
+							t_data.front().bestH = t_data[i].bestH;
+							t_data.front().bestOp = t_data[i].bestOp;
+						}
+					}
+				}
+			}
+
+			if (t_data.front().improvement) {
+				t_data.front().lM.doLocationsOp(t_data.front().bestOp);
+				t_data.front().lM.generalUpdate();
+				std::cout << "\r                                       \rH: "
+					<< t_data.front().lM.mGenericHeuristic << std::flush;
+
+				// update the rest of the centers
+				{
+					// store copy of the system at this moment
+					cityCenterAssignmentCopy = t_data.front().lM.mCityCenterAssignment;
+					it += 1;
+					for (size_t i = 1; i < t_data.size(); ++i) {
+						t_data[i].improvement = false;
+						t_data[i].lM.mGenericHeuristic = t_data.front().lM.mGenericHeuristic;
+						t_data[i].bestH = t_data.front().lM.mGenericHeuristic;
+						std::memcpy(t_data[i].lM.mCityCenterAssignment.data(), // recover assignment
+							cityCenterAssignmentCopy.data(),
+							cityCenterAssignmentCopy.size() * sizeof(cityCenterAssignmentCopy.front()));
+						t_data[i].lM.doLocationsOp(t_data.front().bestOp);
+					}
+				}
+				keepGoing = true;
+			}
+			else {
+				keepGoing = false;
+			}
+		}
+
+	}
+
+	std::cout << "\nNum iterations " << it << std::endl;
+	return IModel(&t_data.front().lM);
 }
 
 LocalSearchModel::LocalSearchModel(const Model& model) :
