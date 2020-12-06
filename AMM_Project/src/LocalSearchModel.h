@@ -58,7 +58,6 @@ protected:
 
     typedef struct Reassignment
     {
-        bool improvement = true;
         OperationCenters bestOp;
         float bestH = std::numeric_limits<float>::infinity();
 

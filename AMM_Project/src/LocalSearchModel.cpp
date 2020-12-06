@@ -12,9 +12,8 @@ IModel LocalSearchModel::runParallel(const IModel* model)
 	LocalSearchModel lM(model);
 
 	Reassignment bestReassignment;
-	bestReassignment.improvement = true;
 
-	auto updateH = [&](Reassignment actualBest, Reassignment newcomer)
+	auto updateH = [](Reassignment& actualBest, const Reassignment& newcomer)
 	{
 		if (newcomer.bestH <= actualBest.bestH)
 		{
@@ -28,12 +27,12 @@ IModel LocalSearchModel::runParallel(const IModel* model)
 	bestReassignment.bestH = lM.mGenericHeuristic;
 
 	uint32_t it = 0;
-	bool swapped = false;
-	while (swapped && bestReassignment.improvement && it++ < 1000) {
+	bool swapped = true;
+	while (swapped && it++ < 1000) {
 
 		// store copy of the system at this moment
 		const int processor_count = std::thread::hardware_concurrency();
-		int perThread = lM.mNumLocations / processor_count;
+		uint32_t perThread = static_cast<uint32_t>(std::ceil(static_cast<float>(lM.mNumLocations) / processor_count));
 		if (perThread < 1) perThread = 1;
 		std::vector<Reassignment> bestCandidates(processor_count);
 		#pragma omp parallel num_threads(processor_count) 
@@ -44,11 +43,10 @@ IModel LocalSearchModel::runParallel(const IModel* model)
 			cityCenterAssignmentCopy = lM.mCityCenterAssignment;
 
 			LocalSearchModel modelCopy(lM);
-			const int c = omp_get_thread_num();
+			const uint32_t c = omp_get_thread_num();
 			Reassignment actualBest;
 			modelCopy.generalUpdate();
 			actualBest.bestH = modelCopy.mGenericHeuristic;
-			actualBest.improvement = false;
 			for (uint32_t l = perThread*c; l < perThread*(c+1)&& l<modelCopy.mNumLocations; ++l) {
 				op.location = l;
 				for (uint32_t t = 0; t < modelCopy.mNumTypes; ++t) {
@@ -90,9 +88,9 @@ IModel LocalSearchModel::runParallel(const IModel* model)
 			op.op = OperationCenters::Op::eSwap;
 			for (uint32_t l = perThread * c; l < perThread * (c + 1) && l < modelCopy.mNumLocations; ++l) {
 				op.location = l;
-				for (uint32_t l2 = l + 1; l2 < perThread * (c + 1) && l2 < modelCopy.mNumLocations; ++l2) {
+				for (uint32_t l2 = l + 1; l2 < modelCopy.mNumLocations; ++l2) {
 					// only do if either location has center
-					if (modelCopy.mLocationTypeAssignment[l] == NOT_ASSIGNED && modelCopy.mLocationTypeAssignment[2] == NOT_ASSIGNED) {
+					if (modelCopy.mLocationTypeAssignment[l] == NOT_ASSIGNED || modelCopy.mLocationTypeAssignment[l2] == NOT_ASSIGNED) {
 						continue;
 					}
 
@@ -114,8 +112,9 @@ IModel LocalSearchModel::runParallel(const IModel* model)
 			}
 			bestCandidates[c] = actualBest;
 		}
+		swapped = false;
 		for (int i = 0; i < processor_count; ++i) {
-			if (bestReassignment.bestH >= bestCandidates[i].bestH) {
+			if (bestReassignment.bestH > bestCandidates[i].bestH) {
 				bestReassignment = bestCandidates[i];
 				swapped = true;
 			}
@@ -126,6 +125,7 @@ IModel LocalSearchModel::runParallel(const IModel* model)
 				lM.generalUpdate();
 				std::cout << "\r                                       \rH: "
 					<< lM.mGenericHeuristic << std::flush;
+				
 		}
 	}
 	std::cout << "\nNum iterations " << it << std::endl;
