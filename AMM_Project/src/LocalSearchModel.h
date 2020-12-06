@@ -8,6 +8,8 @@ public:
 
     static IModel run(const IModel* model);
 
+    static IModel runParallel(const IModel* model);
+
 protected:
 
     LocalSearchModel(const Model& model);
@@ -54,6 +56,13 @@ protected:
         };
     };
 
+    typedef struct Reassignment
+    {
+        bool improvement = true;
+        OperationCenters bestOp;
+        float bestH = std::numeric_limits<float>::infinity();
+
+    } Reassignment;
 
     std::vector<float> mCityHeuristicBuffer;
     std::vector<uint32_t> mLocationAssignedPopulation;
@@ -82,5 +91,7 @@ protected:
 
     // returns true if correct assignment reached
     bool localSearchAssignments();
+
+
 };
 
