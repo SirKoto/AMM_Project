@@ -19,6 +19,7 @@ public:
 
 	bool isSolution() const;
 
+
 protected:
 
 	Model mBaseModel;

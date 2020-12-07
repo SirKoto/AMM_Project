@@ -45,6 +45,7 @@ public:
 	const std::vector<vec>& getLocations() const { return centerPos; }
 
 	const float& getMinDistanceBetweenCenters() const { return minDistBetweenCenters; }
+protected:
 
 private:
 	std::vector<City> cities;

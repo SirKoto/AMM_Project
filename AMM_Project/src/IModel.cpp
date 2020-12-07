@@ -151,7 +151,6 @@ bool IModel::locationIsBlocked(const uint32_t l) const
 	}
 	return false;
 }
-
 std::ostream& operator<<(std::ostream& os, const IModel& dt)
 {
 	std::map<uint32_t, float> centerServing;

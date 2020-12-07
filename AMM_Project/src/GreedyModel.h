@@ -13,6 +13,7 @@ public:
 	GreedyModel(const Model& model);
 
 	void runGreedy();
+	void runParallelLocalSearch();
 
 protected:
 
@@ -24,6 +25,18 @@ protected:
 		uint32_t loc;
 
 	} Candidate;
+
+
+	typedef struct Swap
+	{
+		uint32_t city;
+
+		uint32_t location;
+		bool primarySwap;
+		float fit;
+
+	} Swap;
+
 	
 	// array of num cities * num locations, 
 	std::vector<uint32_t> mSortedCities;
@@ -37,5 +50,14 @@ protected:
 	Candidate findBestAddition(std::vector<Candidate> bestCandidates, uint32_t perThread, int processor_count) const;
 
 	void applyAction(const Candidate& bestAction);
+
+
+	void applySwap(Swap swap);
+
+	void trimLocations();
+
+
+	Swap findBestSwap(std::vector<Swap> bestSwaps, uint32_t perThread, int processor_count);
+
 };
 
