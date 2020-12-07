@@ -46,7 +46,7 @@ void GreedyModel::runGreedy()
 	float actual = numToAssign();
 
 	const int processor_count = std::thread::hardware_concurrency();
-	int perThread = mNumLocations / processor_count;
+	int perThread = static_cast<int>((std::ceil(static_cast<float>(mNumLocations) / processor_count));
 	if (perThread < 1) perThread = 1;
 	std::vector<Candidate> bestCandidates(processor_count);
 
@@ -168,7 +168,7 @@ void GreedyModel::applyAction(const Candidate& bestActions)
 void GreedyModel::runParallelLocalSearch()
 {
 	const int processor_count = std::thread::hardware_concurrency();
-	int perThread = mNumLocations / processor_count;
+	int perThread = static_cast<int>((std::ceil(static_cast<float>(mNumLocations) / processor_count));
 	if (perThread < 1) perThread = 1;
 	std::vector<Swap> bestSwaps(processor_count);
 	int iter = 10000;
