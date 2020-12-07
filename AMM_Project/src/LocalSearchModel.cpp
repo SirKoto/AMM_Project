@@ -29,7 +29,6 @@ IModel LocalSearchModel::runParallel(const IModel* model)
 	uint32_t it = 0;
 	bool swapped = true;
 	while (swapped && it++ < 1000) {
-
 		// store copy of the system at this moment
 		const int processor_count = std::thread::hardware_concurrency();
 		uint32_t perThread = static_cast<uint32_t>(std::ceil(static_cast<float>(lM.mNumLocations) / processor_count));
@@ -124,7 +123,7 @@ IModel LocalSearchModel::runParallel(const IModel* model)
 				lM.doLocationsOp(bestReassignment.bestOp);
 				lM.generalUpdate();
 				std::cout << "\r                                       \rH: "
-					<< lM.mGenericHeuristic << std::flush;
+					<< lM.mGenericHeuristic;// std::flush;
 				
 		}
 	}

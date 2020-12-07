@@ -66,7 +66,7 @@ GreedyModel::Candidate GreedyModel::tryAddGreedy(const uint32_t l, const uint32_
 {
 	if (mLocationTypeAssignment[l] != NOT_ASSIGNED || locationIsBlocked(l)) {
 		Candidate infeasible;
-		infeasible.fit = -1;
+		infeasible.fit = -std::numeric_limits<float>::infinity();;
 		return infeasible;
 	}
 	std::fill(assignments.begin(), assignments.end(), 0);
@@ -100,7 +100,13 @@ GreedyModel::Candidate GreedyModel::tryAddGreedy(const uint32_t l, const uint32_
 		}
 	}
 	if (ci < mNumCities - 1) assignments[ci + 1] = 3;
-	bestCandidate.fit = static_cast<float>(pop) * 0.1f / mBaseModel.getCenterTypes()[t].cost;
+	int freeCities = 0;
+	for (int it = ci; it < mNumCities; ++it) {
+		uint32_t c = *(ptr + it);
+		if (mCityCenterAssignment[c].first == NOT_ASSIGNED && isCityLocationTypeCompatible(c, l, t, 0)) freeCities += 4;
+		else if (mCityCenterAssignment[c].second == NOT_ASSIGNED && isCityLocationTypeCompatible(c, l, t, 1)) freeCities += 2;
+	}
+	bestCandidate.fit = (static_cast<float>(pop) * 0.1f / mBaseModel.getCenterTypes()[t].cost) - freeCities;
 	bestCandidate.assigns = assignments;
 	bestCandidate.type = t;
 	bestCandidate.loc = l;
@@ -131,7 +137,7 @@ GreedyModel::Candidate GreedyModel::findBestAddition(std::vector<Candidate> best
 		bestCandidates[omp_get_thread_num()] = bestCandidate;
     }
 
-	float bestFit = -1.0;
+	float bestFit = -std::numeric_limits<float>::infinity();
 	int bestPos = 0;
 	for (int i = 0; i < processor_count; ++i) {
 		if (bestCandidates[i].fit > bestFit) {
