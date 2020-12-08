@@ -32,19 +32,23 @@ int main(int argc, char* argv[]) {
 	auto diff = end - start;
 	std::cout << pMod;
 	std::cout << std::chrono::duration<double>(diff).count() << " seconds for greedy execution" << std::endl;
-	
+	float costGreedy = pMod.getCentersCost();
 	start = std::chrono::steady_clock::now();
 	pMod.runParallelLocalSearch();
 	end = std::chrono::steady_clock::now();
+	float costParallel = pMod.getCentersCost();
 	diff = end - start;
 	std::cout << pMod;
 	std::cout << std::chrono::duration <double>(diff).count() << " seconds for local search execution" << std::endl;
+
+	std::cout << costGreedy <<" as cost for Greedy and  " << costParallel << " as cost for localSearch "  << std::endl;
+
 	float cost = std::numeric_limits<float>::infinity();
 
 	start = std::chrono::steady_clock::now();
 	for (int i = 0; i < 100; ++i) {
 		pMod.purge();
-		pMod.GRASPConstructivePhase(0.1);
+		pMod.GRASPConstructivePhase(0.2);
 		pMod.runParallelLocalSearch();
 		if (pMod.isSolution() && cost > pMod.getCentersCost()) cost = pMod.getCentersCost();
 	}

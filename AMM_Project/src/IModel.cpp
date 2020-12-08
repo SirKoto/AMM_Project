@@ -209,7 +209,5 @@ std::ostream& operator<<(std::ostream& os, const IModel& dt)
 		os << "Bad location " << l << " with " << centerServing.at(l) << "/" << dt.mBaseModel.getCenterTypes()[dt.mLocationTypeAssignment[l]].maxPop << " population\n";
 	}
 
-
-
 	return os;
 }

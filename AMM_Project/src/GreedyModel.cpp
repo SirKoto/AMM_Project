@@ -60,6 +60,7 @@ void GreedyModel::runGreedy()
 			std::cout << actual * 100.0f <<"%" << std::endl;
 		}
 	}
+	trimLocations();
 }
 
 GreedyModel::Candidate GreedyModel::tryAddGreedy(const uint32_t l, const uint32_t t, std::vector<char>& assignments) const
@@ -106,8 +107,8 @@ GreedyModel::Candidate GreedyModel::tryAddGreedy(const uint32_t l, const uint32_
 		if (mCityCenterAssignment[c].first == NOT_ASSIGNED && isCityLocationTypeCompatible(c, l, t, 0)) freeCities += 2;
 		else if (mCityCenterAssignment[c].second == NOT_ASSIGNED && isCityLocationTypeCompatible(c, l, t, 1)) freeCities += 1;
 	}
-	bestCandidate.fit = (static_cast<float>(pop) * 0.1f / mBaseModel.getCenterTypes()[t].cost) - freeCities;
-	bestCandidate.assigns = assignments;
+	bestCandidate.fit = (static_cast<float>(pop) * 0.1f / mBaseModel.getCenterTypes()[t].cost) - freeCities/5;
+	bestCandidate.assigns = std::vector<char> (assignments);
 	bestCandidate.type = t;
 	bestCandidate.loc = l;
 
@@ -151,7 +152,6 @@ GreedyModel::Candidate GreedyModel::findBestAddition(std::vector<Candidate> &bes
 
 void GreedyModel::applyAction(const Candidate& bestActions)
 {
-	mLocationTypeAssignment[bestActions.loc] = bestActions.type;
 	const uint32_t* ptr = getCitiesSorted(bestActions.loc);
 	for (uint32_t ci=0;ci<mNumCities;++ci) {
 		uint32_t c = *(ptr + ci);
@@ -161,8 +161,11 @@ void GreedyModel::applyAction(const Candidate& bestActions)
 		else if (bestActions.assigns[ci] == 2) {
 			mCityCenterAssignment[c].second = bestActions.loc;
 		}
-		else if (bestActions.assigns[ci] == 3) return;
+		else if (bestActions.assigns[ci] == 3) {
+			break;
+		}
 	}
+	mLocationTypeAssignment[bestActions.loc] = bestActions.type;
 }
 
 void GreedyModel::runParallelLocalSearch()
@@ -175,13 +178,11 @@ void GreedyModel::runParallelLocalSearch()
 	bool improvement = true;
 	while (iter--) {
 		Swap bestSwap = findBestSwap(bestSwaps, perThread, processor_count);
-		if (bestSwap.fit <= 0) {
-			improvement = false;
-			break;
-		}
+		if (bestSwap.fit <= 0) break;
 		applySwap(bestSwap);
-		trimLocations();
+		//std::cout << bestSwap.fit << std::endl;
 	}
+	trimLocations();
 }
 
 void GreedyModel::trimLocations() {
@@ -200,8 +201,8 @@ void GreedyModel::trimLocations() {
 		uint32_t bestType = type;
 		if (type != NOT_ASSIGNED) {
 			float bestCost = mBaseModel.getCenterTypes()[type].cost;
-			if (centerServing[cl] == 0) {
-				mLocationTypeAssignment[cl] = NOT_ASSIGNED;
+			if (centerServing[cl] == 0.0f) {
+				bestType = NOT_ASSIGNED;
 			}
 			else {
 				for (uint32_t t = 0; t < mNumTypes; ++t) {
@@ -234,6 +235,21 @@ float getLoad(std::vector<float> centerServing, uint32_t location, uint32_t maxP
 	return centerServing[location] / maxPop;
 }
 
+
+double GreedyModel::getUsefulLoad(std::vector<float> centerServing) {
+	double usefulLoad = 0;
+	uint32_t loc = 0;
+	for (uint32_t l = 0; l < mNumLocations; ++l) {
+		if (centerServing[l] != 0) {
+			uint32_t type = mLocationTypeAssignment[l];
+			double load = static_cast<double> (centerServing[l]) / static_cast<double> (mBaseModel.getCenterTypes()[type].maxPop*10);
+			double expLoad = exp(load);
+			usefulLoad += expLoad;
+		}
+	}
+	return usefulLoad;
+}
+
 GreedyModel::Swap GreedyModel::findBestSwap(std::vector<Swap> bestSwaps, uint32_t perThread, int processor_count)
 {
 
@@ -245,12 +261,10 @@ GreedyModel::Swap GreedyModel::findBestSwap(std::vector<Swap> bestSwaps, uint32_
 		if (mCityCenterAssignment[i].second != NOT_ASSIGNED) {
 			centerServing[mCityCenterAssignment[i].second] += mBaseModel.getCities()[i].population;
 		}
-
 	}
 	#pragma omp parallel num_threads(processor_count)
 	{
 
-		float reducedLoad = 0;
 		const int c = omp_get_thread_num();
 		Swap bestSwap;
 		bestSwap.fit = 0;
@@ -259,21 +273,22 @@ GreedyModel::Swap GreedyModel::findBestSwap(std::vector<Swap> bestSwaps, uint32_
 			City current = cities[ci];
 			uint32_t locationPrimary = mCityCenterAssignment[ci].first;
 			uint32_t locationSecondary = mCityCenterAssignment[ci].second;
+			double usefulLoad = getUsefulLoad(centerServing);
 			for (uint32_t cl = 0; cl < mNumLocations; ++cl) {
 				if (mLocationTypeAssignment[cl]!=NOT_ASSIGNED) {
-					uint32_t destiny = centerServing.at(cl);
-					if (locationSecondary == NOT_ASSIGNED && (cl !=locationPrimary)) {
-						if ((isCityLocationTypeCompatible(c, cl, mLocationTypeAssignment[cl], 1)) && ((destiny + current.population) < mBaseModel.getCenterTypes()[mLocationTypeAssignment[cl]].maxPop*10)) {
+					float destiny = centerServing.at(cl);
+					if (locationSecondary == NOT_ASSIGNED &&  (cl!=locationPrimary)) {
+						if ((isCityLocationTypeCompatible(ci, cl, mLocationTypeAssignment[cl], 1)) && ((destiny + current.population) <= mBaseModel.getCenterTypes()[mLocationTypeAssignment[cl]].maxPop*10)) {
 							Swap aux;
 							aux.location = cl;
 							aux.city = ci;
-							aux.fit = 100000;
+							aux.fit = std::numeric_limits<float>::infinity();
 							aux.primarySwap = false;
 							bestSwap = aux;
 						}
 					}
-					else if (locationPrimary == NOT_ASSIGNED && (locationSecondary != cl)) {
-						if ((isCityLocationTypeCompatible(c, cl, mLocationTypeAssignment[cl], 0)) && ((destiny + current.population*10) < mBaseModel.getCenterTypes()[mLocationTypeAssignment[cl]].maxPop*10)) {
+					if (locationPrimary == NOT_ASSIGNED && (locationSecondary!=cl)) {
+						if ((isCityLocationTypeCompatible(ci, cl, mLocationTypeAssignment[cl], 0)) && ((destiny + current.population*10) <= mBaseModel.getCenterTypes()[mLocationTypeAssignment[cl]].maxPop*10)) {
 							Swap aux;
 							aux.location = cl;
 							aux.city = ci;
@@ -282,41 +297,55 @@ GreedyModel::Swap GreedyModel::findBestSwap(std::vector<Swap> bestSwaps, uint32_
 							bestSwap = aux;
 						}
 					}
-					else
-					{
-						if (isCityLocationTypeCompatible(c, cl, mLocationTypeAssignment[cl], 0)) {
-							uint32_t destiny = centerServing.at(cl);
-							if (((destiny + current.population*10) < mBaseModel.getCenterTypes()[mLocationTypeAssignment[cl]].maxPop*10) && (cl != locationSecondary)) {
-								uint32_t origin = centerServing.at(locationPrimary);
-								float newLoadOrigin = (origin - current.population*10) / mBaseModel.getCenterTypes()[mLocationTypeAssignment[locationPrimary]].maxPop;
-								float reducedLoad = origin - newLoadOrigin;
-								if (bestSwap.fit < reducedLoad) {
+					if (locationPrimary != NOT_ASSIGNED && isCityLocationTypeCompatible(ci, cl, mLocationTypeAssignment[cl], 0) && (cl != locationSecondary)) {
+							float destiny = centerServing.at(cl);
+							float origin = centerServing.at(locationPrimary);
+							if (((destiny + current.population*10) <= mBaseModel.getCenterTypes()[mLocationTypeAssignment[cl]].maxPop*10)) {
+								double newLoadDestiny = (destiny + current.population*10) / (mBaseModel.getCenterTypes()[mLocationTypeAssignment[cl]].maxPop * 10);
+								double newLoadOrigin = (origin - current.population*10) / (mBaseModel.getCenterTypes()[mLocationTypeAssignment[locationPrimary]].maxPop * 10);
+								double oldLoadOrigin = origin / (mBaseModel.getCenterTypes()[mLocationTypeAssignment[locationPrimary]].maxPop * 10);
+								double oldLoadDestiny = destiny / (mBaseModel.getCenterTypes()[mLocationTypeAssignment[cl]].maxPop * 10);
+								newLoadDestiny = exp(newLoadDestiny);
+								newLoadOrigin = exp(newLoadOrigin);
+								oldLoadOrigin = exp(oldLoadOrigin);
+								oldLoadDestiny = exp(oldLoadDestiny);
+
+								double loadChange = -((oldLoadOrigin) + (oldLoadDestiny)) + ((newLoadDestiny) + (newLoadOrigin));
+								double newUsefulLoad = usefulLoad + loadChange;
+								if (bestSwap.fit < newUsefulLoad) {
 									Swap aux;
 									aux.location = cl;
 									aux.city = ci;
-									aux.fit = reducedLoad;
+									aux.fit = newUsefulLoad;
 									aux.primarySwap = true;
 									bestSwap = aux;
 								}
 							}
 						}
-						if (isCityLocationTypeCompatible(c, cl, mLocationTypeAssignment[cl], 1) && (cl != locationPrimary)) {
-							uint32_t destiny = centerServing.at(cl);
-							if (( (destiny + current.population ) < mBaseModel.getCenterTypes()[mLocationTypeAssignment[cl]].maxPop*10)) {
-								uint32_t origin = centerServing.at(locationSecondary);
-								float newLoadOrigin = (origin - current.population) / mBaseModel.getCenterTypes()[mLocationTypeAssignment[locationSecondary]].maxPop;
-								float reducedLoad = origin - newLoadOrigin;
-								if (bestSwap.fit < reducedLoad) {
+					if (locationSecondary != NOT_ASSIGNED && isCityLocationTypeCompatible(ci, cl, mLocationTypeAssignment[cl], 1) && (cl != locationPrimary)) {
+							float destiny = centerServing.at(cl);
+							float origin = centerServing.at(locationSecondary);
+							if (( (destiny + current.population ) <= mBaseModel.getCenterTypes()[mLocationTypeAssignment[cl]].maxPop*10)) {
+								double newLoadDestiny = (destiny + current.population) / (mBaseModel.getCenterTypes()[mLocationTypeAssignment[cl]].maxPop*10);
+								double newLoadOrigin = (origin - current.population) / (mBaseModel.getCenterTypes()[mLocationTypeAssignment[locationSecondary]].maxPop*10);
+								double oldLoadOrigin = origin / (mBaseModel.getCenterTypes()[mLocationTypeAssignment[locationSecondary]].maxPop*10);
+								double oldLoadDestiny= destiny / (mBaseModel.getCenterTypes()[mLocationTypeAssignment[cl]].maxPop*10);
+								newLoadDestiny = exp(newLoadDestiny);
+								newLoadOrigin = exp(newLoadOrigin);
+								oldLoadOrigin = exp(oldLoadOrigin);
+								oldLoadDestiny = exp(oldLoadDestiny);
+								double loadChange = -((oldLoadOrigin) + (oldLoadDestiny)) + ((newLoadDestiny) + (newLoadOrigin));
+								double newUsefulLoad = usefulLoad + loadChange;
+								if (bestSwap.fit < newUsefulLoad) {
 									Swap aux;
 									aux.location = cl;
 									aux.city = ci;
-									aux.fit = reducedLoad;
+									aux.fit = newUsefulLoad;
 									aux.primarySwap = false;
 									bestSwap = aux;
 								}
 							}
 						}
-					}
 				}
 			}
 		}
@@ -325,6 +354,7 @@ GreedyModel::Swap GreedyModel::findBestSwap(std::vector<Swap> bestSwaps, uint32_
 	float bestFit = -std::numeric_limits<float>::infinity();
 	int bestPos = 0;
 	for (int i = 0; i < processor_count; ++i) {
+		//std::cout << bestSwaps[i].fit << std::endl;
 		if (bestSwaps[i].fit > bestFit) {
 			bestFit = bestSwaps[i].fit;
 			bestPos = i;
@@ -409,8 +439,6 @@ std::vector<float> worstFits(processor_count);
 			iter++;
 		}
 	}
-	//std::cout << bestFit << std::endl;
-	//std::cout << cutoff << std::endl;
 	uint32_t randElec = rand() % (iter);
 	return std::move(RCL[randElec]);
 }

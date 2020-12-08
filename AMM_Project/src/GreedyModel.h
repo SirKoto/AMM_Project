@@ -53,13 +53,13 @@ protected:
 
 	void applyAction(const Candidate& bestAction);
 
-
 	void applySwap(Swap swap);
 
 	void trimLocations();
 
 	Swap findBestSwap(std::vector<Swap> bestSwaps, uint32_t perThread, int processor_count);
 
+	double getUsefulLoad(std::vector<float> centerServing);
 
 	Candidate findCandidateGRASP(std::vector<Candidate> &candidates, std::vector<Candidate> &RCL,std::vector<std::vector<char>> &assignments, uint32_t perThread, int processor_count, float alpha) const;
 };
