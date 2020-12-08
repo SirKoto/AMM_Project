@@ -185,16 +185,13 @@ void GreedyModel::runParallelLocalSearch()
 }
 
 void GreedyModel::trimLocations() {
-	std::map<uint32_t, float> centerServing;
-	for (uint32_t i = 0; i < mNumLocations; ++i) {
-		centerServing.insert({ i, 0.0f });
-	}
+	std::vector<float> centerServing(mNumCities, 0);
 	for (uint32_t i = 0; i < mCityCenterAssignment.size(); ++i) {
-		if (centerServing.count(mCityCenterAssignment[i].first)) {
-			centerServing.at(mCityCenterAssignment[i].first) += mBaseModel.getCities()[i].population;
+		if (mCityCenterAssignment[i].first != NOT_ASSIGNED) {
+			centerServing[mCityCenterAssignment[i].first] += mBaseModel.getCities()[i].population * 10;
 		}
-		if (centerServing.count(mCityCenterAssignment[i].second)) {
-			centerServing.at(mCityCenterAssignment[i].second) += 0.1f * mBaseModel.getCities()[i].population;
+		if (mCityCenterAssignment[i].second != NOT_ASSIGNED) {
+			centerServing[mCityCenterAssignment[i].second] += mBaseModel.getCities()[i].population;
 		}
 
 	}
@@ -203,13 +200,13 @@ void GreedyModel::trimLocations() {
 		uint32_t bestType = type;
 		if (type != NOT_ASSIGNED) {
 			float bestCost = mBaseModel.getCenterTypes()[type].cost;
-			if (centerServing.at(cl) == 0) {
+			if (centerServing[cl] == 0) {
 				mLocationTypeAssignment[cl] = NOT_ASSIGNED;
 			}
 			else {
 				for (uint32_t t = 0; t < mNumTypes; ++t) {
 					if (type != t) {
-						if (mBaseModel.getCenterTypes()[t].cost >= centerServing.at(cl)) {
+						if (mBaseModel.getCenterTypes()[t].maxPop >= centerServing[cl]) {
 							if (bestCost > mBaseModel.getCenterTypes()[t].cost) {
 								bestCost = mBaseModel.getCenterTypes()[t].cost;
 								bestType = t;
