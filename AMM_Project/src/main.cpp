@@ -39,6 +39,18 @@ int main(int argc, char* argv[]) {
 	diff = end - start;
 	std::cout << pMod;
 	std::cout << std::chrono::duration <double>(diff).count() << " seconds for local search execution" << std::endl;
+	float cost = std::numeric_limits<float>::infinity();
+
+	start = std::chrono::steady_clock::now();
+	for (int i = 0; i < 100; ++i) {
+		pMod.purge();
+		pMod.GRASPConstructivePhase(0.1);
+		pMod.runParallelLocalSearch();
+		if (pMod.isSolution() && cost > pMod.getCentersCost()) cost = pMod.getCentersCost();
+	}
+	end = std::chrono::steady_clock::now();
+	diff = end - start;
+	std::cout << std::chrono::duration <double>(diff).count() << " seconds for GRASP execution with optimal cost "<< cost << std::endl;
 
 	return 0;
 }

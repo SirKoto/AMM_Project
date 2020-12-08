@@ -14,6 +14,8 @@ public:
 
 	void runGreedy();
 	void runParallelLocalSearch();
+	void GRASPConstructivePhase(float alpha);
+	void purge();
 
 protected:
 
@@ -56,8 +58,9 @@ protected:
 
 	void trimLocations();
 
-
 	Swap findBestSwap(std::vector<Swap> bestSwaps, uint32_t perThread, int processor_count);
 
+
+	Candidate findCandidateGRASP(std::vector<Candidate> candidates, std::vector<Candidate> RCL, uint32_t perThread, int processor_count, float alpha) const;
 };
 
