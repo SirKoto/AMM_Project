@@ -118,7 +118,7 @@ const uint32_t* GreedyModel::getCitiesSorted(const uint32_t l) const
 	return mSortedCities.data() + l * mNumCities;
 }
 
-GreedyModel::Candidate GreedyModel::findBestAddition(std::vector<Candidate> bestCandidates, uint32_t perThread, int processor_count) const
+GreedyModel::Candidate GreedyModel::findBestAddition(std::vector<Candidate> &bestCandidates, uint32_t perThread, int processor_count) const
 {
     #pragma omp parallel num_threads(processor_count)
     {
@@ -233,23 +233,20 @@ void GreedyModel::applySwap(Swap bestSwap) {
 
 }
 
-float getLoad(std::map<uint32_t, float> centerServing, uint32_t location, uint32_t maxPop) {
-	return centerServing.at(location) / maxPop;
+float getLoad(std::vector<float> centerServing, uint32_t location, uint32_t maxPop) {
+	return centerServing[location] / maxPop;
 }
 
 GreedyModel::Swap GreedyModel::findBestSwap(std::vector<Swap> bestSwaps, uint32_t perThread, int processor_count)
 {
 
-	std::map<uint32_t, float> centerServing;
-	for (uint32_t i = 0; i < mNumLocations; ++i) {
-		centerServing.insert({ i, 0.0f });
-	}
+	std::vector<float> centerServing(mNumCities,0);
 	for (uint32_t i = 0; i < mCityCenterAssignment.size(); ++i) {
-		if (centerServing.count(mCityCenterAssignment[i].first)) {
-			centerServing.at(mCityCenterAssignment[i].first) += mBaseModel.getCities()[i].population*10;
+		if (mCityCenterAssignment[i].first!=NOT_ASSIGNED) {
+			centerServing[mCityCenterAssignment[i].first] += mBaseModel.getCities()[i].population*10;
 		}
-		if (centerServing.count(mCityCenterAssignment[i].second)) {
-			centerServing.at(mCityCenterAssignment[i].second) += mBaseModel.getCities()[i].population;
+		if (mCityCenterAssignment[i].second != NOT_ASSIGNED) {
+			centerServing[mCityCenterAssignment[i].second] += mBaseModel.getCities()[i].population;
 		}
 
 	}
@@ -273,7 +270,7 @@ GreedyModel::Swap GreedyModel::findBestSwap(std::vector<Swap> bestSwaps, uint32_
 							Swap aux;
 							aux.location = cl;
 							aux.city = ci;
-							aux.fit = std::numeric_limits<float>::infinity()/2;
+							aux.fit = 100000;
 							aux.primarySwap = false;
 							bestSwap = aux;
 						}
@@ -344,12 +341,13 @@ void GreedyModel::GRASPConstructivePhase(float alpha) {
 	const int processor_count = std::thread::hardware_concurrency();
 	int perThread = static_cast<int>((std::ceil(static_cast<float>(mNumLocations) / processor_count)));
 	if (perThread < 1) perThread = 1;
-
+	std::vector<std::vector<char>> assignments(processor_count,std::vector<char>(mNumCities));
+	srand(0);
 	while (!isSolutionFast()) {
-		Candidate GRASPCandidate = findCandidateGRASP(candidateList, RCL, perThread, processor_count, alpha);
+		Candidate GRASPCandidate = findCandidateGRASP(candidateList, RCL, assignments,perThread, processor_count, alpha);
 		if (GRASPCandidate.fit == -std::numeric_limits<float>::infinity()) break;
 		applyAction(GRASPCandidate);
-	}
+	}	
 }
 
 void GreedyModel::purge() {
@@ -363,7 +361,7 @@ void GreedyModel::purge() {
 
 }
 
-GreedyModel::Candidate GreedyModel::findCandidateGRASP(std::vector<GreedyModel::Candidate> candidates, std::vector<Candidate> RCL,uint32_t perThread, int processor_count, float alpha) const
+GreedyModel::Candidate GreedyModel::findCandidateGRASP(std::vector<GreedyModel::Candidate> &candidates, std::vector<Candidate> &RCL, std::vector<std::vector<char>> &assignments , uint32_t perThread, int processor_count, float alpha) const
 {
 
 std::vector<float> bestFits(processor_count);
@@ -372,14 +370,13 @@ std::vector<float> worstFits(processor_count);
 #pragma omp parallel num_threads(processor_count)
 	{
 		const int c = omp_get_thread_num();
-		std::vector<char> assignments(mNumCities);
 
 		float bestFit= -std::numeric_limits<float>::infinity();
 		float worstFit= std::numeric_limits<float>::infinity();
 
 		for (uint32_t l = c * perThread; l < (c + 1) * perThread && l < mNumLocations; ++l) {
 			for (uint32_t t = 0; t < mNumTypes; ++t) {
-				Candidate currentCandidate = tryAddGreedy(l, t, assignments);
+				Candidate currentCandidate = tryAddGreedy(l, t, assignments[c]);
 				candidates[l * mNumTypes + t] = currentCandidate;
 				if (currentCandidate.fit > bestFit) {
 					bestFit = currentCandidate.fit;

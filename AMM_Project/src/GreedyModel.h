@@ -49,7 +49,7 @@ protected:
 
 
 	// Returns location and type
-	Candidate findBestAddition(std::vector<Candidate> bestCandidates, uint32_t perThread, int processor_count) const;
+	Candidate findBestAddition(std::vector<Candidate> &bestCandidates, uint32_t perThread, int processor_count) const;
 
 	void applyAction(const Candidate& bestAction);
 
@@ -61,6 +61,6 @@ protected:
 	Swap findBestSwap(std::vector<Swap> bestSwaps, uint32_t perThread, int processor_count);
 
 
-	Candidate findCandidateGRASP(std::vector<Candidate> candidates, std::vector<Candidate> RCL, uint32_t perThread, int processor_count, float alpha) const;
+	Candidate findCandidateGRASP(std::vector<Candidate> &candidates, std::vector<Candidate> &RCL,std::vector<std::vector<char>> &assignments, uint32_t perThread, int processor_count, float alpha) const;
 };
 
