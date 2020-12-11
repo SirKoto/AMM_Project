@@ -5,6 +5,7 @@
 #include <thread>
 #include <omp.h>
 
+const double EulerConstant = std::exp(1.0);
 GreedyModel::GreedyModel(const Model& model) : IModel(model)
 {
 	mLocationTypeAssignment.resize(mNumLocations, NOT_ASSIGNED);
@@ -175,23 +176,34 @@ void GreedyModel::runParallelLocalSearch()
 	if (perThread < 1) perThread = 1;
 	std::vector<Swap> bestSwaps(processor_count);
 	int iter = 10000;
-	bool improvement = true;
-	while (iter--) {
+	uint32_t noImprovement = 0;
+	float oldFit = 0;
+	while (iter-- && noImprovement<5) {
 		Swap bestSwap = findBestSwap(bestSwaps, perThread, processor_count);
 		if (bestSwap.fit <= 0) break;
+		else if (oldFit >= bestSwap.fit) noImprovement++;
+		else noImprovement = 0;
+		oldFit = bestSwap.fit;
 		applySwap(bestSwap);
-		//std::cout << bestSwap.fit << std::endl;
 	}
 	trimLocations();
 }
 
 void GreedyModel::trimLocations() {
 	std::vector<float> centerServing(mNumCities, 0);
+	std::vector<float> maxDistLoc(mNumLocations, 0);
+	std::vector<float> maxDistLocSec(mNumLocations, 0);
 	for (uint32_t i = 0; i < mCityCenterAssignment.size(); ++i) {
 		if (mCityCenterAssignment[i].first != NOT_ASSIGNED) {
+			vec2 position=mBaseModel.getCities()[i].cityPos;
+			float dist = mBaseModel.getLocations()[mCityCenterAssignment[i].first].sqDist(position);
+			if (dist > maxDistLoc[mCityCenterAssignment[i].first]) maxDistLoc[mCityCenterAssignment[i].first] = dist;
 			centerServing[mCityCenterAssignment[i].first] += mBaseModel.getCities()[i].population * 10;
 		}
 		if (mCityCenterAssignment[i].second != NOT_ASSIGNED) {
+			vec2 position = mBaseModel.getCities()[i].cityPos;
+			float dist = mBaseModel.getLocations()[mCityCenterAssignment[i].second].sqDist(position);
+			if (dist > maxDistLocSec[mCityCenterAssignment[i].second]) maxDistLocSec[mCityCenterAssignment[i].second] = dist;
 			centerServing[mCityCenterAssignment[i].second] += mBaseModel.getCities()[i].population;
 		}
 
@@ -207,7 +219,7 @@ void GreedyModel::trimLocations() {
 			else {
 				for (uint32_t t = 0; t < mNumTypes; ++t) {
 					if (type != t) {
-						if (mBaseModel.getCenterTypes()[t].maxPop >= centerServing[cl]) {
+						if (mBaseModel.getCenterTypes()[t].maxPop >= centerServing[cl] && mBaseModel.getCenterTypes()[t].serveDist>=maxDistLoc[cl] && mBaseModel.getCenterTypes()[t].serveDist>=3* maxDistLocSec[cl]) {
 							if (bestCost > mBaseModel.getCenterTypes()[t].cost) {
 								bestCost = mBaseModel.getCenterTypes()[t].cost;
 								bestType = t;
@@ -282,7 +294,7 @@ GreedyModel::Swap GreedyModel::findBestSwap(std::vector<Swap> bestSwaps, uint32_
 							Swap aux;
 							aux.location = cl;
 							aux.city = ci;
-							aux.fit = std::numeric_limits<float>::infinity();
+							aux.fit = EulerConstant*mNumLocations;
 							aux.primarySwap = false;
 							bestSwap = aux;
 						}
@@ -292,7 +304,7 @@ GreedyModel::Swap GreedyModel::findBestSwap(std::vector<Swap> bestSwaps, uint32_
 							Swap aux;
 							aux.location = cl;
 							aux.city = ci;
-							aux.fit = std::numeric_limits<float>::infinity();
+							aux.fit = EulerConstant * mNumLocations;
 							aux.primarySwap = true;
 							bestSwap = aux;
 						}
@@ -369,7 +381,6 @@ void GreedyModel::GRASPConstructivePhase(float alpha) {
 	int perThread = static_cast<int>((std::ceil(static_cast<float>(mNumLocations) / processor_count)));
 	if (perThread < 1) perThread = 1;
 	std::vector<std::vector<char>> assignments(processor_count,std::vector<char>(mNumCities));
-	srand(0);
 	while (!isSolutionFast()) {
 		Candidate GRASPCandidate = findCandidateGRASP(candidateList, RCL, assignments,perThread, processor_count, alpha);
 		if (GRASPCandidate.fit == -std::numeric_limits<float>::infinity()) break;
