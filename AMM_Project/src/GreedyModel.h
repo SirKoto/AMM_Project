@@ -62,5 +62,6 @@ protected:
 	double getUsefulLoad(std::vector<float> centerServing);
 
 	Candidate findCandidateGRASP(std::vector<Candidate> &candidates, std::vector<Candidate> &RCL,std::vector<std::vector<char>> &assignments, uint32_t perThread, int processor_count, float alpha) const;
+
 };
 

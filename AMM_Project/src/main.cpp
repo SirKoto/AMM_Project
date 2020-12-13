@@ -9,8 +9,10 @@ int main(int argc, char* argv[]) {
 
 	Model modelData;
 
-	//std::string fileName = "data/project.2.dat";
 	std::string fileName = "data/output.txt";
+	if (argc == 2) {
+		fileName = argv[1];
+	}
 	auto start = std::chrono::steady_clock::now();
 
 	bool read = modelData.readFromFile(fileName);
@@ -48,6 +50,7 @@ int main(int argc, char* argv[]) {
 	start = std::chrono::steady_clock::now();
 	auto current = std::chrono::steady_clock::now();
 	uint64_t iterations = 0;
+
 	while (std::chrono::duration <double>(current-start).count()<=600) {
 		iterations++;
 		pMod.purge();
@@ -64,7 +67,9 @@ int main(int argc, char* argv[]) {
 		std::cout << costAux << " cost for constructive phase " << pMod.getCentersCost() <<" cost after local search" <<std::endl;
 		*/
 		current = std::chrono::steady_clock::now();
-		if (pMod.isSolution() && cost > pMod.getCentersCost()) cost = pMod.getCentersCost();
+		if (pMod.isSolution() && cost > pMod.getCentersCost()) {
+			cost = pMod.getCentersCost();
+		}
 	}
 	end = std::chrono::steady_clock::now();
 	diff = end - start;

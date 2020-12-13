@@ -294,7 +294,7 @@ GreedyModel::Swap GreedyModel::findBestSwap(std::vector<Swap> bestSwaps, uint32_
 							Swap aux;
 							aux.location = cl;
 							aux.city = ci;
-							aux.fit = EulerConstant*mNumLocations;
+							aux.fit = usefulLoad+EulerConstant*mNumLocations;
 							aux.primarySwap = false;
 							bestSwap = aux;
 						}
@@ -304,7 +304,7 @@ GreedyModel::Swap GreedyModel::findBestSwap(std::vector<Swap> bestSwaps, uint32_
 							Swap aux;
 							aux.location = cl;
 							aux.city = ci;
-							aux.fit = EulerConstant * mNumLocations;
+							aux.fit = usefulLoad + EulerConstant * mNumLocations;
 							aux.primarySwap = true;
 							bestSwap = aux;
 						}
