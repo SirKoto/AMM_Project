@@ -294,7 +294,12 @@ GreedyModel::Swap GreedyModel::findBestSwap(std::vector<Swap> bestSwaps, uint32_
 							Swap aux;
 							aux.location = cl;
 							aux.city = ci;
-							aux.fit = usefulLoad+EulerConstant*mNumLocations;
+							double newLoadDestiny = (destiny + current.population * 10) / (mBaseModel.getCenterTypes()[mLocationTypeAssignment[cl]].maxPop * 10);
+							double oldLoadDestiny = destiny / (mBaseModel.getCenterTypes()[mLocationTypeAssignment[cl]].maxPop * 10);
+							newLoadDestiny = exp(newLoadDestiny);
+							oldLoadDestiny = exp(oldLoadDestiny);
+							double newUsefulLoad = usefulLoad - oldLoadDestiny + newLoadDestiny;
+							aux.fit = newUsefulLoad +EulerConstant*mNumLocations;
 							aux.primarySwap = false;
 							bestSwap = aux;
 						}
@@ -304,7 +309,12 @@ GreedyModel::Swap GreedyModel::findBestSwap(std::vector<Swap> bestSwaps, uint32_
 							Swap aux;
 							aux.location = cl;
 							aux.city = ci;
-							aux.fit = usefulLoad + EulerConstant * mNumLocations;
+							double newLoadDestiny = (destiny + current.population) / (mBaseModel.getCenterTypes()[mLocationTypeAssignment[cl]].maxPop * 10);
+							double oldLoadDestiny = destiny / (mBaseModel.getCenterTypes()[mLocationTypeAssignment[cl]].maxPop * 10);
+							newLoadDestiny = exp(newLoadDestiny);
+							oldLoadDestiny = exp(oldLoadDestiny);
+							double newUsefulLoad = usefulLoad - oldLoadDestiny + newLoadDestiny;
+							aux.fit = newUsefulLoad/2 + EulerConstant * mNumLocations;
 							aux.primarySwap = true;
 							bestSwap = aux;
 						}
