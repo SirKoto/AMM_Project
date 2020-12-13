@@ -1,19 +1,19 @@
-
 import numpy as np
 import sys
-nLocations=300
-nCities=460
-nTypes=4
+nLocations=60
+nCities=110
+nTypes=7
 
 d_center=1.1
 
-maxX=100
-maxY=100
+maxX=30
+maxY=30
+
 
 p=np.random.randint(0,10,nCities)
-cap=np.random.randint(5,20,nTypes)
+cap=np.random.randint(5,40,nTypes)
 cost=cap//2 + np.random.randint(0,2)
-d_city=np.random.randint(2,10,nTypes)
+d_city=np.random.randint(2,15,nTypes)
 
 realDis=np.argmax(d_city)
 
@@ -30,7 +30,7 @@ while notValid:
         notValid=False
         
 indMax = np.argmax(cap)
-locCap=[cap[indMax]]*nLocations*2
+locCap=[cap[indMax]]*nLocations
 
 startX=np.random.randint(0,maxX)
 startY=np.random.randint(0,maxY)
@@ -57,12 +57,7 @@ for location in range(1,nLocations):
             maxY+=10
             attempts=0
     posLocations.append([posX,posY])
-    
-for location in range(0,nLocations):
-    posX=np.random.randint(0,maxX)
-    posY=np.random.randint(0,maxY)
-    posLocations.append([posX,posY])    
-    
+        
 for location in range(0,nCities):
     validLoc=False
     attempts=0
@@ -101,11 +96,12 @@ for location in range(0,nCities):
                 break
     posCities.append([posX,posY])
 
-extraCap=np.random.randint(0,10)
+extraCap=np.random.randint(0,15)
 cap[indMax]+=extraCap
 cost[indMax]+=extraCap
+d_city[indMax]+=extraCap
 with open('output.txt', 'w') as f:
-    print("nLocations = "+str(nLocations*2)+";", file=f)
+    print("nLocations = "+str(nLocations)+";", file=f)
     print("nCities = "+str(nCities)+";", file=f)
     print("nTypes = "+str(nTypes)+";", file=f)
     stringP="["
@@ -126,7 +122,7 @@ with open('output.txt', 'w') as f:
     stringCap="d_city = ["
     for val in d_city:
         stringCap+=" "+str(val)
-    stringCap+=" ]"
+    stringCap+=" ]"+";"
     print(stringCap, file=f)
     stringCap="["
     for val in cap:
