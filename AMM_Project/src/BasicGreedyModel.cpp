@@ -146,3 +146,5 @@ void BasicGreedyModel::applyAction(const uint32_t l, const uint32_t t)
 	mLocationTypeAssignment[l] = t;
 }
 
+
+

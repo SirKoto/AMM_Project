@@ -29,5 +29,7 @@ protected:
 	std::pair<uint32_t, uint32_t> findBestAddition() const;
 
 	void applyAction(const uint32_t l, const uint32_t t);
+
+
 };
 

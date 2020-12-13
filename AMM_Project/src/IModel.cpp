@@ -151,7 +151,6 @@ bool IModel::locationIsBlocked(const uint32_t l) const
 	}
 	return false;
 }
-
 std::ostream& operator<<(std::ostream& os, const IModel& dt)
 {
 	std::map<uint32_t, float> centerServing;
@@ -209,8 +208,6 @@ std::ostream& operator<<(std::ostream& os, const IModel& dt)
 	for (uint32_t l : badLocations) {
 		os << "Bad location " << l << " with " << centerServing.at(l) << "/" << dt.mBaseModel.getCenterTypes()[dt.mLocationTypeAssignment[l]].maxPop << " population\n";
 	}
-
-
 
 	return os;
 }

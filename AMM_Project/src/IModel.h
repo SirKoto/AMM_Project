@@ -19,6 +19,7 @@ public:
 
 	bool isSolution() const;
 
+
 protected:
 
 	Model mBaseModel;
@@ -29,7 +30,6 @@ protected:
 	const uint32_t mNumLocations;
 	const uint32_t mNumTypes;
 	const uint32_t mNumCities;
-
 
 	static constexpr uint32_t NOT_ASSIGNED = std::numeric_limits<uint32_t>::max();
 
